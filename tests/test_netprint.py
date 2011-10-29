@@ -1,81 +1,149 @@
 # -*- encoding: utf8 -*-
-from __future__ import with_statement
 import os
-import py
-from mechanize import make_response
-from netprint import (Client, UnexpectedContent,
-                      PaperSize, Color, ReservationNumber,
-                      NeedSecret, NeedMargin, NeedNotification)
-from mocker import ANY
 
-def test_login(context):
-    mocker = context.mocker()
+from unittest2 import TestCase
+from nose import SkipTest
+from nose.plugins.attrib import attr
 
-    client = context.get_netprint_client()
-    client.browser = mocker.proxy(client.browser)
 
-    with mocker.order():
-        client.browser.open(Client.login_url)
-        mocker.call(with_loading_fixture('data/login.html'), with_object=True)
-        client.browser.select_form(nr=0)
-        mocker.passthrough()
+def load_fixture(path):
+    return file(os.path.join(os.path.dirname(__file__), path))
 
-    client.browser['i'] = 'foo'
-    mocker.passthrough()
-    client.browser['p'] = 'bar'
-    mocker.passthrough()
 
-    with mocker.order():
-        client.browser.submit()
-        mocker.call(with_loading_fixture('data/main.html'), with_object=True)
-        client.browser.select_form(name='m1form')
-        mocker.passthrough()
+class ClientTest(TestCase):
+    def _getOUT(self, browser=None):
+        from netprint import Client
+        return Client(browser)
 
-    client.browser['s']
-    mocker.result('a_valid_session')
-    client.browser.response()
-    mocker.passthrough()
-    mocker.replay()
+    @attr(test_type='unit')
+    def test_login(self):
+        from netprint import Client
 
-    client.login('foo', 'bar')
-    assert client.session_key == 'a_valid_session'
+        class Ok(object):
+            status = 200
+            reason = 'Ok'
 
-    mocker.verify()
-    mocker.restore()
+        class browser(object):
+            @staticmethod
+            def request(url, method='GET', body=None):
+                if url == Client.login_url and method == 'GET':
+                    return Ok, \
+                           load_fixture('data/login.html').read()
+                elif url == Client.manage_url and method == 'POST':
+                    return Ok, \
+                           load_fixture('data/main.html').read()
 
-def test_actual_login(context):
-    if not context.need_connect():
-        py.test.skip("The connection is disabled by not specifying username and password")
-    client = context.get_netprint_client()
-    client.login(context.config.option.username,
-                 context.config.option.password)
-    assert client.session_key is not None
+        client = self._getOUT(browser)
+        client.login('username', 'password')
+        self.assertEqual(client.session_key,
+                "9TubQ6yo1iRnWNk6qnYOlll9rbEmOiUfOFcxdcTLPMkA")
 
-def test_check_content(context):
-    client = context.get_netprint_client()
-    with_loading_fixture('data/main.html')(client.browser)
-    client._make_soup()
-    client._check_displaying_main_page_then_trim()
-    assert client._soup.name == 'table'
-    assert client._soup.previousSibling == None
-    assert client._soup.parent == None
-    assert client._soup.nextSibling == None
+    @attr(test_type='unit')
+    def test_login_failed(self):
+        from urllib2 import URLError
+        from netprint import LoginFailure
 
-def test_list(context):
-    client = context.get_netprint_client()
-    with_loading_fixture('data/main.html')(client.browser)
-    client._make_soup()
-    client._check_displaying_main_page_then_trim()
-    item_list = client.list()
-    assert len(item_list) == 1
+        class browser(object):
+            @staticmethod
+            def open(url):
+                raise URLError("Login Failed")
 
-    item = item_list[0]
-    assert item.id == 'QNA7HNEE'
-    assert item.name == unicode('チケット印刷画面', 'utf8')
-    assert item.file_size == '832KB'
-    assert item.paper_size == 'A4'
-    assert item.page_numbers == 3
-    assert item.valid_date == '2010/10/02'
+        client = self._getOUT(browser)
+        self.assertRaises(LoginFailure, client.login, 'username', 'password')
+
+    @attr(test_type='unit')
+    def test_check_trim_content(self):
+        from BeautifulSoup import BeautifulSoup
+
+        client = self._getOUT()
+        client._soup = BeautifulSoup(load_fixture('data/main.html'))
+        client._check_displaying_main_page_then_trim()
+        self.assertEqual(client._soup.name, 'table')
+        self.assertIsNone(client._soup.previousSibling)
+        self.assertIsNone(client._soup.parent)
+        self.assertIsNone(client._soup.nextSibling)
+
+    @attr(test_type='unit')
+    def test_list(self):
+        from BeautifulSoup import BeautifulSoup
+
+        client = self._getOUT()
+        client._soup = BeautifulSoup(load_fixture('data/main.html'))
+        client._check_displaying_main_page_then_trim()
+        item_list = client.list()
+        self.assertEqual(len(item_list), 1)
+
+        item = item_list[0]
+        self.assertEqual(item.id, 'QNA7HNEE')
+        self.assertEqual(item.name, unicode('チケット印刷画面', 'utf8'))
+        self.assertEqual(item.file_size, '832KB')
+        self.assertEqual(item.paper_size, 'A4')
+        self.assertEqual(item.page_numbers, 3)
+        self.assertEqual(item.valid_date, '2010/10/02')
+
+
+class FunctionalClientTest(TestCase):
+    def setUp(self):
+        try:
+            from google.appengine.ext.testbed import Testbed
+
+            self.testbed = Testbed()
+            self.testbed.activate()
+            self.testbed.init_urlfetch_stub()
+        except ImportError:
+            pass
+
+        self.username = os.environ.get('NETPRINT_USERNAME')
+        self.password = os.environ.get('NETPRINT_PASSWORD')
+        if self.username is None or self.password is None:
+            raise SkipTest("Need both "
+                           "NETPRINT_USERNAME and NETPRINT_PASSWORD")
+
+    def tearDown(self):
+        if getattr(self, 'testbed', None):
+            self.testbed.deactivate()
+
+    def _getOUT(self):
+        import httplib2
+        from netprint import Client
+
+        httplib2.debuglevel = 1
+        return Client(httplib2.Http(),
+                      'Mozilla/5.0 '
+                      '(Macintosh; U;Intel Mac OS X 10_6_3; ja-jp) '
+                      'AppleWebKit/533.16 (KHTML, like Gecko) '
+                      'Version/5.0 Safari/533.16')
+
+    @attr(test_type='functional')
+    def test_login(self):
+        client = self._getOUT()
+        client.login(self.username, self.password, 1)
+        self.assertIsNotNone(client.session_key)
+
+    @attr(test_type='functional')
+    def test_session_error(self):
+        from netprint import UnexpectedContent
+
+        client1 = self._getOUT()
+        client2 = self._getOUT()
+        client1.login(self.username, self.password, 1)
+        client2.login(self.username, self.password, 1)
+        self.assertNotEqual(client1.session_key, client2.session_key)
+        self.assertRaises(UnexpectedContent, client1.reload)
+
+    @attr(test_type='functional')
+    def test_send_delete(self):
+        client = self._getOUT()
+        client.login(self.username, self.password, 1)
+
+        client.send('tests/data/sudoku01.jpg')
+        client.reload()
+        self.assertIn('sudoku01', [item.name for item in client.list()])
+
+        client.delete(item)
+        client.reload()
+        self.assertNotIn('sudoku01', [item.name for item in client.list()])
+"""
 
 def test_send(context):
     mocker = context.mocker()
@@ -161,39 +229,4 @@ def test_delete(context):
 
     mocker.verify()
     mocker.restore()
-
-def test_actual_send_delete(context):
-    if not context.need_connect():
-        py.test.skip("The connection is disabled by not specifying username and password")
-    client = context.get_netprint_client()
-    client.login(context.config.option.username,
-                 context.config.option.password)
-
-    client.send('tests/data/sudoku01.jpg', file_name='test01.jpg')
-    client.reload()
-    assert 'test01' in [item.name for item in client.list()]
-
-    client.delete(item)
-    client.reload()
-    assert 'test01' not in [item.name for item in client.list()]
-
-def test_session_error(context):
-    if not context.need_connect():
-        py.test.skip("The connection is disabled by not specifying username and password")
-    client1 = context.get_netprint_client()
-    client1.login(context.config.option.username,
-                  context.config.option.password)
-    client2 = context.get_netprint_client()
-    client2.login(context.config.option.username,
-                  context.config.option.password)
-    with py.test.raises(UnexpectedContent):
-        client1.reload()
-
-def with_loading_fixture(path):
-    def f(browser, *args, **kwg):
-        response = make_response(
-            file(os.path.join(os.path.dirname(__file__), path)).read(),
-            [("Content-Type", "text/html")],
-            '', 200, "OK")
-        browser.set_response(response)
-    return f
+"""
