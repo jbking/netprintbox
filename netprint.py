@@ -5,17 +5,28 @@ netprint: A client module for the Net print (http://www.printing.ne.jp)
 """
 
 __author__ = "MURAOKA Yusuke"
-__copyright__ = "Copyright 2010, MURAOKA Yusuke"
+__copyright__ = "Copyright 2010 - 2011, MURAOKA Yusuke"
 __license__ = "New BSD"
 __version__ = "0.1"
-__email__ = "yusuke.muraoka@gmail.com"
+__email__ = "yusuke@jbking.org"
 
-import os
+
+import time
+import re
 from enum import Enum
-from BeautifulSoup import BeautifulSoup
 import logging
+from urllib import urlencode
 
-header_row = [unicode(s, 'utf8') for s in ("ファイル名", "プリント", "予約番号", "ファイル", "サイズ", "用　紙", "サイズ", "ページ", "有効期限")]
+from BeautifulSoup import BeautifulSoup
+import httplib2
+
+from utils import is_multipart, encode_multipart_data
+
+
+header_row = [unicode(s, 'utf8') for s in
+              ("ファイル名", "プリント", "予約番号",
+               "ファイル", "サイズ", "用　紙", "サイズ",
+               "ページ", "有効期限")]
 
 # enums
 PaperSize = Enum("Paper size", "A4 A3 B4 B5 L".split())
@@ -25,61 +36,135 @@ NeedSecret = Enum("Need secret code or not", "No Yes".split())
 NeedMargin = Enum("Need margin to result or not", "No Yes".split())
 NeedNotification = Enum("Need notification at entry or not", "No Yes".split())
 
+
+FORMENCODE_HEADERS = {
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "Accept-Language": "ja",
+    "Accept-Charset": "utf-8"}
+
+
+MULTIPART_HEADERS = {
+    "Content-Type": 'multipart/form-data; boundary=',
+    "Accept-Language": "ja"}
+
+
 class LoginFailure(Exception): pass
+
+
+class Reload(Exception): pass
+
+
 class UnexpectedContent(ValueError):
     """
     If raising this exception, first, please login again. Because the session key of current session might be expired.
     Otherwise the content of the target site may be changed.
     """
 
+
+MAX_RETRY = 3
+
+
+class DictCache(object):
+    def __init__(self, safe=httplib2.safename):
+        self.data = {}
+        self.safe = safe
+
+    def get(self, key):
+        key = self.safe(key)
+        return self.data.get(key, None)
+
+    def set(self, key, value):
+        key = self.safe(key)
+        self.data[key] = value
+
+    def delete(self, key):
+        key = self.safe(key)
+        if key in self.data:
+            del self.data[key]
+
+
 class Client(object):
 
-    root_url = 'https://www.printing.ne.jp/'
-    login_url = root_url + 'login.html'
-    manage_url = root_url + 'cgi-bin/mn.cgi'
+    url_prefix = 'https://www.printing.ne.jp'
+    login_url = url_prefix + '/login.html'
+    manage_url = url_prefix + '/cgi-bin/mn.cgi'
 
-    def __init__(self, browser):
+    def __init__(self, browser, user_agent=None):
         self.browser = browser
+        self.user_agent = user_agent
+        self._soup = None
 
-    def set_debug(self, flag=True):
-        self.browser.set_debug_http(flag)
-        self.browser.set_debug_redirects(flag)
-        self.browser.set_debug_responses(flag)
+    def _request(self, uri, method='GET', headers=None, body=None,
+            status=(200, 304), **kwargs):
+        """
+        Request on HTTP.
 
-    def login(self, username, password):
+        Assume that using httplib2.Http, so even status is 304 by response,
+        content must exist.
+        """
+        if headers is not None:
+            headers = headers.copy()
+        else:
+            headers = {}
+        if self.user_agent is not None:
+            headers['User-Agent'] = self.user_agent
+        if isinstance(body, dict):
+            if method not in ('POST', 'PUT'):
+                method = 'POST'
+            if is_multipart(body):
+                body, boundary = encode_multipart_data(body)
+                headers.update(MULTIPART_HEADERS)
+                headers['Content-Type'] = MULTIPART_HEADERS['Content-Type'] + \
+                                          boundary
+            else:
+                body = urlencode(body, True)
+                headers.update(FORMENCODE_HEADERS)
+        (response, content) = self.browser.request(uri,
+                method=method, headers=headers, body=body, **kwargs)
+        assert response.status in status, \
+               "%s %s" % (response.status, response.reason)
+        return (response, content)
+
+    def login(self, username, password, retry=3):
         """
         Login to the Net print service.
         """
-        # This implementation trying to get session key (like cookie but...) 3 times.
-        for _ in range(3):
+        for _ in range(retry):
             try:
-                self.browser.open(self.login_url)
-                assert len(list(self.browser.forms())) == 1
-                self.browser.select_form(nr=0)
-                self.browser['i'] = username
-                self.browser['p'] = password
-                self.browser.submit()
-                self.browser.select_form(name='m1form')
-                self.session_key = self.browser['s']
+                (_, content) = self._request(self.login_url)
+
+                soup = BeautifulSoup(content)
+                form = soup.find('form')
+                assert form.find('input', attrs=dict(name='i')) is not None
+                assert form.find('input', attrs=dict(name='p')) is not None
+
+                submit_url = form['action']
+                post_data = dict(i=username, p=password)
+                (_, content) = self._request(submit_url,
+                                             body=post_data)
+
+                soup = BeautifulSoup(content)
+                form = soup.find('form', attrs=dict(name='m1form'))
+                session_field = form.find('input', attrs=dict(name='s'))
+                assert session_field is not None
+
+                self.session_key = session_field['value']
                 break
             except:
                 logging.exception("login failed")
         else:
             raise LoginFailure("login failed")
-        self._make_soup()
+        self._soup = soup  # update soup.
         self._check_displaying_main_page_then_trim()
 
     def go_home(self):
-        self.browser.open(self.manage_url + '?s=' + self.session_key)
+        (_, content) = self._request(
+                self.manage_url + '?s=' + self.session_key)
+        self._soup = BeautifulSoup(content)  # update soup.
 
     def reload(self):
         self.go_home()
-        self._make_soup()
         self._check_displaying_main_page_then_trim()
-
-    def _make_soup(self):
-        response = self.browser.response()
-        self._soup = BeautifulSoup(response.get_data())
 
     def _check_displaying_main_page_then_trim(self):
         if self._soup is None:
@@ -90,24 +175,37 @@ class Client(object):
             raise UnexpectedContent
 
         ns = ns_list[0]
-        if ns.findParent('tr').findAll(text=lambda ns: len(ns.strip()) > 0) != header_row:
+        if ns.findParent('tr')\
+                .findAll(text=lambda ns: len(ns.strip()) > 0) != header_row:
             raise UnexpectedContent
 
+        # trim
         self._soup = ns.findParent('table')
         self._soup.extract()
 
-    def list(self):
-        item_list = []
-        for row in self._soup.findAll('tr')[1:]:
-            column_list = row.findAll('td')
-            item_list.append(Item(column_list[2].string,
-                                  column_list[1].string,
-                                  column_list[3].string,
-                                  column_list[4].string,
-                                  int(column_list[5].string),
-                                  column_list[6].string,
-                                 ))
-        return item_list
+    def list(self, retry=0):
+        try:
+            item_list = []
+            for row in self._soup.findAll('tr')[1:]:
+                column_list = row.findAll('td')
+                id = column_list[2].string
+                if id is None:
+                    raise Reload
+                item_list.append(Item(column_list[2].string,
+                                      column_list[1].string,
+                                      column_list[3].string,
+                                      column_list[4].string,
+                                      int(column_list[5].string),
+                                      column_list[6].string,
+                                     ))
+            return item_list
+        except Reload:
+            if retry < MAX_RETRY:
+                time.sleep(1)
+                self.reload()
+                return self.list(retry=retry + 1)
+            else:
+                raise
 
     def delete(self, *item_or_id):
         """
@@ -123,34 +221,34 @@ class Client(object):
 
         self.go_home()
 
-        # XXX an hack for duplicate name attributes of an image button.
-        res = self.browser.response()
-        data = res.get_data()
-        data = data.replace(' name="Image1"', '')
-        res.set_data(data)
-        self.browser.set_response(res)
+        (_, content) = self._request(self.manage_url, body={
+            'c': 0,  # unknown
+            's': self.session_key,
+            'fc': id_set,
+            'delete.x': 1,
+            'delete.y': 1})
 
-        self.browser.select_form(nr=2)
-        self.browser['fc'] = id_set
-        self.browser.submit(name='delete')
-
-        if (self.browser.response().get_data().find(unicode('ファイルを削除します', 'utf8').encode('sjis')) == -1
-            or len(list(self.browser.forms())) != 1):
+        soup = BeautifulSoup(content)
+        if (soup.find('input', attrs={'name': 'delexec'}) is None
+            or len(soup.findAll('form')) != 1):
             raise UnexpectedContent
 
-        self.browser.select_form(nr=0)
-        self.browser.submit()
+        (_, content) = self._request(self.manage_url, body={
+            'c': 0,  # unknown
+            's': self.session_key,
+            'fc': id_set,
+            'delexec.x': 1,
+            'delexec.y': 1})
 
-    def send(self, path_or_file, file_name=None,
-            paper_size=PaperSize.A4,
-            color=Color.choice_at_printing,
-            reserversion_number=ReservationNumber.AlphaNum,
-            need_secret=NeedSecret.No,
-            secret_code=None,
-            need_margin=NeedMargin.No,
-            need_notification=NeedNotification.No,
-            mail_address=None
-           ):
+    def send(self, path_or_file,
+             paper_size=PaperSize.A4,
+             color=Color.choice_at_printing,
+             reserversion_number=ReservationNumber.AlphaNum,
+             need_secret=NeedSecret.No,
+             secret_code=None,
+             need_margin=NeedMargin.No,
+             need_notification=NeedNotification.No,
+             mail_address=None):
         """
         send a file to Netprint.
 
@@ -166,14 +264,12 @@ class Client(object):
         """
 
         f = None
-        if isinstance(path_or_file, str):
+        if isinstance(path_or_file, basestring):
             path = path_or_file
             f = file(path)
-            if file_name is None:
-                file_name = os.path.basename(path)
         elif hasattr(path_or_file, 'read'):
             f = path_or_file
-            if file_name is None:
+            if getattr(f, 'name', None) is None:
                 raise ValueError("file like object needs its name")
         else:
             raise ValueError("unknown value of path_or_file")
@@ -188,35 +284,41 @@ class Client(object):
 
         self.go_home()
 
-        link_list = list(self.browser.links(text_regex=unicode('^新規ファイル', 'utf8').encode('sjis')))
-
-        if len(link_list) != 1:
+        new_file_list = self._soup(alt=re.compile(u'^新規ファイル'))
+        if len(new_file_list) != 1:
             raise UnexpectedContent
-        link = link_list[0]
-        self.browser.follow_link(link)
+        link = new_file_list[0].parent['href']
+
+        (_, content) = self._request(self.url_prefix + link)
+        # ignore invalid characters to BeautifulSoup recognize the content correctly.
+        content = content.decode('sjis', 'replace')
+        soup = BeautifulSoup(content)
 
         # Now must be on a file entry page
-        if (self.browser.response().get_data().find(unicode('新規ファイルの登録', 'utf8').encode('sjis')) == -1
-            or len(list(self.browser.forms())) != 2):
+        if not (soup.find(text=u'新規ファイルの登録') is not None
+                and len(soup.findAll('form')) == 2):
             raise UnexpectedContent
 
-        self.browser.select_form(nr=1)
+        self._request(self.url_prefix + link, body=dict(
+            s=self.session_key,
+            c=0,  # unknown
+            m=2,  # unknown
+            re=0,  # unknown
+            file1=f,
+            papersize=paper_size,
+            color=color,
+            number=reserversion_number,
+            secretcodesw=need_secret,
+            secretcode=secret_code or '',
+            magnification=need_margin,
+            mailsw=need_notification,
+            mailaddr=mail_address or ''))
 
-        self.browser.form.add_file(f, filename=file_name)
-        self.browser['papersize'] = [str(paper_size)]
-        self.browser['color'] = [str(color)]
-        self.browser['number'] = [str(reserversion_number)]
-        self.browser['secretcodesw'] = [str(need_secret)]
-        self.browser['secretcode'] = secret_code or ''
-        self.browser.form.find_control('magnification').readonly = False
-        self.browser['magnification'] = str(need_margin)
-        self.browser['mailsw'] = [str(need_notification)]
-        self.browser['mailaddr'] = mail_address or ''
-        self.browser.submit()
 
 class Item(object):
 
-    def __init__(self, id, name, file_size, paper_size, page_numbers, valid_date):
+    def __init__(self, id, name, file_size, paper_size, page_numbers,
+                 valid_date):
         self.id = id
         self.name = name
         self.file_size = file_size
