@@ -270,16 +270,6 @@ class Client(object):
              mail_address=None):
         """
         send a file to Netprint.
-
-        Current values are bellow:
-            papersize=0(A4) 1(A3) 2(B4) 3(B5) 4(L size)
-            color=1(choice at printing) 2(color) or 0(gray)
-            number=0(alphanum) or 1(num)
-            secretcodesw=0(no secret) or 1(secret)
-            secretcode=the password
-            magnification=1(without margin) or 0(with margin)
-            mailsw=0(no need notification) or 1(need notification)
-            mailaddr=the mail address
         """
 
         f = None
