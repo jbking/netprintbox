@@ -13,7 +13,6 @@ __email__ = "yusuke@jbking.org"
 
 import time
 import re
-from enum import Enum
 import logging
 from urllib import urlencode
 
@@ -28,13 +27,31 @@ header_row = [unicode(s, 'utf8') for s in
                "ファイル", "サイズ", "用　紙", "サイズ",
                "ページ", "有効期限")]
 
-# enums
-PaperSize = Enum("Paper size", "A4 A3 B4 B5 L".split())
-Color = Enum("Color mode", "gray choice_at_printing color".split())
-ReservationNumber = Enum("Reserversion number type", "AlphaNum Num".split())
-NeedSecret = Enum("Need secret code or not", "No Yes".split())
-NeedMargin = Enum("Need margin to result or not", "No Yes".split())
-NeedNotification = Enum("Need notification at entry or not", "No Yes".split())
+
+# const #######################################
+class PaperSize:
+    A4, A3, B4, B5, L = range(5)
+
+
+class Color:
+    gray, choice_at_printing, color = range(3)
+
+
+class ReservationNumber:
+    AlphaNum, Num = range(2)
+
+
+class NeedSecret:
+    No, Yes = range(2)
+
+
+class NeedMargin:
+    No, Yes = range(2)
+
+
+class NeedNotification:
+    No, Yes = range(2)
+###############################################
 
 
 FORMENCODE_HEADERS = {
@@ -48,10 +65,12 @@ MULTIPART_HEADERS = {
     "Accept-Language": "ja"}
 
 
-class LoginFailure(Exception): pass
+class LoginFailure(Exception):
+    pass
 
 
-class Reload(Exception): pass
+class Reload(Exception):
+    pass
 
 
 class UnexpectedContent(ValueError):
