@@ -3,6 +3,6 @@ import sys
 
 
 def setup():
-    sys.path.insert(0, os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
-        'bundle'))
+    project_top = os.path.dirname(os.path.dirname(__file__))
+    for dirname in ('bundle', 'src'):
+        sys.path.insert(0, os.path.join(project_top, dirname))

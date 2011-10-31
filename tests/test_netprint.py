@@ -25,7 +25,7 @@ class ClientTest(TestCase):
 
         class browser(object):
             @staticmethod
-            def request(url, method='GET', body=None):
+            def request(url, method='GET', headers=None, body=None):
                 if url == Client.login_url and method == 'GET':
                     return Ok, \
                            load_fixture('data/login.html').read()
