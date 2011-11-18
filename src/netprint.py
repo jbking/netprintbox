@@ -15,6 +15,7 @@ import time
 import re
 import logging
 from urllib import urlencode
+from collections import namedtuple
 
 from BeautifulSoup import BeautifulSoup
 import httplib2
@@ -324,20 +325,10 @@ class Client(object):
             mailaddr=mail_address or ''))
 
 
-class Item(object):
-
-    def __init__(self, id, name, file_size, paper_size, page_numbers,
-                 valid_date):
-        self.id = id
-        self.name = name
-        self.file_size = file_size
-        self.paper_size = paper_size
-        self.page_numbers = page_numbers
-        self.valid_date = valid_date
-
-    def __repr__(self):
-        _class = self.__class__
-        return '<%s.%s object id:"%s" name:"%s">' % (_class.__module__,
-                                                     _class.__name__,
-                                                     self.id,
-                                                     self.name)
+Item = namedtuple('Item',
+    'id '
+    'name '
+    'file_size '
+    'paper_size '
+    'page_numbers '
+    'valid_date ')
