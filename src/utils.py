@@ -1,9 +1,11 @@
 # -*- encoding: utf8 -*-
 import random
 import sys
+import time
 import os
 import mimetypes
 
+import settings
 
 OS_FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 
@@ -48,3 +50,11 @@ def encode_multipart_data(data):
     lines[-1] += "--"
 
     return "\r\n".join(lines), boundary
+
+
+if settings.DEBUG:
+    def random_sleep():
+        pass
+else:
+    def random_sleep():
+        time.sleep(random.randint(0, 120))

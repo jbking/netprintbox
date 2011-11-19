@@ -1,6 +1,4 @@
 import logging
-import random
-import time
 
 from google.appengine.api import taskqueue
 import webapp2
@@ -12,16 +10,11 @@ import commands.dropbox
 from commands.netprintbox import sync_dropbox_netprint, put_from_dropbox
 import settings
 import data
+from utils import random_sleep
 
 
 if settings.DEBUG:
     httplib2.debuglevel = 1
-
-    def random_sleep():
-        pass
-else:
-    def random_sleep():
-        time.sleep(random.randint(0, 120))
 
 
 def get_session():
