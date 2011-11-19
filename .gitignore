@@ -1,2 +1,2 @@
 *.pyc
-src/settings.py
+src/settings_local.py

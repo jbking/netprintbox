@@ -211,8 +211,11 @@ class Client(object):
             item_list = []
             for row in self._soup.findAll('tr')[1:]:
                 column_list = row.findAll('td')
-                id = column_list[2].string
-                if id is None:
+                try:
+                    id = column_list[2].string
+                    if id is None:
+                        raise Reload
+                except IndexError:
                     raise Reload
                 item_list.append(Item(column_list[2].string,
                                       column_list[1].string,

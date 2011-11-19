@@ -1,7 +1,27 @@
+import logging
+import random
+import time
+
+from google.appengine.api import taskqueue
 import webapp2
 import dropbox
+import httplib2
+
+import netprint
+import commands.dropbox
+from commands.netprintbox import sync_dropbox_netprint, put_from_dropbox
 import settings
 import data
+
+
+if settings.DEBUG:
+    httplib2.debuglevel = 1
+
+    def random_sleep():
+        pass
+else:
+    def random_sleep():
+        time.sleep(random.randint(0, 120))
 
 
 def get_session():
@@ -45,3 +65,42 @@ class AuthCallbackHandler(webapp2.RequestHandler):
 
         self.response.status = 200
         self.response.write("Saved :)")
+
+
+class CronHandler(webapp2.RequestHandler):
+    def get(self):
+        for key in data.DropboxUser.all(keys_only=True):
+            taskqueue.add(url='/task/check', params={'key': key})
+
+
+def custom_put(dropbox_client, netprint_client,
+               dropbox_item, netprint_item):
+    excludes = ['/account.ini', '/report.txt']
+    if ((dropbox_item is not None and dropbox_item['path'] not in excludes)
+        and netprint_item is None):
+        put_from_dropbox(dropbox_client, netprint_client,
+                         dropbox_item, netprint_item)
+
+
+class QueueWorker(webapp2.RequestHandler):
+    def post(self):
+        logging.getLogger().setLevel(logging.DEBUG)
+
+        key = self.request.get('key')
+
+        random_sleep()
+
+        user = data.DropboxUser.get(key)
+        session = get_session()
+        session.set_token(user.access_key, user.access_secret)
+
+        dropbox_client = dropbox.client.DropboxClient(session)
+        (netprint_username, netprint_password) = commands\
+                .dropbox.load_netprint_account_info(dropbox_client)
+        netprint_client = netprint.Client(httplib2.Http(),
+                                          settings.USER_AGENT)
+        netprint_client.login(netprint_username, netprint_password)
+        sync_dropbox_netprint(dropbox_client, netprint_client, custom_put)
+
+        for item in netprint_client.list():
+            logging.debug(item._asdict())
