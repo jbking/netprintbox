@@ -1,0 +1,35 @@
+Design
+======
+
+User
+----
+- has a box.
+- is related to a Dropbox account.
+- can have a Dropbox's access token.
+
+Box
+---
+- has a netprint account information, file hash and logs in their top directory as text file. (UI)
+- has some files.
+- has only file format support which are supported by netprint.
+- has 10MB limit by netprint.
+- recognize files in entire directory tree for sharing. (UI)
+  - how do we put them into flat place of netprint? hash? joined with separator?
+- properties.
+  - hash to compare modification of the directory.
+
+File
+----
+- valid filename?? (UI)
+- to be put on netprint.
+- to be removed when it removed on netprint.
+- to be removed on netprint when it removed on Dropbox.
+- properties.
+  - bytes
+  - path
+  - mime_type target netprint service may be switched.
+  - revision
+  - modified
+  - hash issued by netprint
+- futures.
+  - selectable to keep the file permanently. (UI)

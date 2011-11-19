@@ -15,6 +15,7 @@ import time
 import re
 import logging
 from urllib import urlencode
+from collections import namedtuple
 
 from BeautifulSoup import BeautifulSoup
 import httplib2
@@ -65,6 +66,7 @@ MULTIPART_HEADERS = {
     "Accept-Language": "ja"}
 
 
+# exceptions ##################################
 class LoginFailure(Exception):
     pass
 
@@ -78,6 +80,7 @@ class UnexpectedContent(ValueError):
     If raising this exception, first, please login again. Because the session key of current session might be expired.
     Otherwise the content of the target site may be changed.
     """
+###############################################
 
 
 MAX_RETRY = 3
@@ -121,6 +124,7 @@ class Client(object):
         Assume that using httplib2.Http, so even status is 304 by response,
         content must exist.
         """
+        uri = str(uri)
         if headers is not None:
             headers = headers.copy()
         else:
@@ -270,16 +274,6 @@ class Client(object):
              mail_address=None):
         """
         send a file to Netprint.
-
-        Current values are bellow:
-            papersize=0(A4) 1(A3) 2(B4) 3(B5) 4(L size)
-            color=1(choice at printing) 2(color) or 0(gray)
-            number=0(alphanum) or 1(num)
-            secretcodesw=0(no secret) or 1(secret)
-            secretcode=the password
-            magnification=1(without margin) or 0(with margin)
-            mailsw=0(no need notification) or 1(need notification)
-            mailaddr=the mail address
         """
 
         f = None
@@ -334,20 +328,10 @@ class Client(object):
             mailaddr=mail_address or ''))
 
 
-class Item(object):
-
-    def __init__(self, id, name, file_size, paper_size, page_numbers,
-                 valid_date):
-        self.id = id
-        self.name = name
-        self.file_size = file_size
-        self.paper_size = paper_size
-        self.page_numbers = page_numbers
-        self.valid_date = valid_date
-
-    def __repr__(self):
-        _class = self.__class__
-        return '<%s.%s object id:"%s" name:"%s">' % (_class.__module__,
-                                                     _class.__name__,
-                                                     self.id,
-                                                     self.name)
+Item = namedtuple('Item',
+    'id '
+    'name '
+    'file_size '
+    'paper_size '
+    'page_numbers '
+    'valid_date ')
