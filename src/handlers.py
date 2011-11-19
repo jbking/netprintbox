@@ -1,4 +1,3 @@
-import datetime
 import logging
 
 from google.appengine.api import taskqueue
@@ -104,7 +103,8 @@ def custom_put(dropbox_client, netprint_client,
 
 class QueueWorker(webapp2.RequestHandler):
     def post(self):
-        logging.getLogger().setLevel(logging.DEBUG)
+        if settings.DEBUG:
+            logging.getLogger().setLevel(logging.DEBUG)
 
         key = self.request.get('key')
 
