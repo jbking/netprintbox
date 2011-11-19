@@ -10,7 +10,7 @@ OS_FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 
 def is_multipart(data):
     for value in data.values():
-        if isinstance(value, file):
+        if getattr(value, 'read', None):
             return True
     return False
 

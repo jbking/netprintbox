@@ -124,6 +124,7 @@ class Client(object):
         Assume that using httplib2.Http, so even status is 304 by response,
         content must exist.
         """
+        uri = str(uri)
         if headers is not None:
             headers = headers.copy()
         else:
