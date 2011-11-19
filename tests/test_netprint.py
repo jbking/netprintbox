@@ -117,7 +117,7 @@ class FunctionalClientTest(TestCase):
     @attr(test_type='functional')
     def test_login(self):
         client = self._getOUT()
-        client.login(self.username, self.password, 1)
+        client.login(self.username, self.password, retry=1)
         self.assertIsNotNone(client.session_key)
 
     @attr(test_type='functional')
@@ -134,9 +134,22 @@ class FunctionalClientTest(TestCase):
     @attr(test_type='functional')
     def test_send_delete(self):
         client = self._getOUT()
-        client.login(self.username, self.password, 1)
+        client.login(self.username, self.password, retry=1)
 
         client.send('tests/data/sudoku01.jpg')
+        client.reload()
+        self.assertIn('sudoku01', [item.name for item in client.list()])
+
+        client.delete(item)
+        client.reload()
+        self.assertNotIn('sudoku01', [item.name for item in client.list()])
+
+    @attr(test_type='functional')
+    def test_send_delete_with_fileobj(self):
+        client = self._getOUT()
+        client.login(self.username, self.password, retry=1)
+
+        client.send(file('tests/data/sudoku01.jpg'))
         client.reload()
         self.assertIn('sudoku01', [item.name for item in client.list()])
 
