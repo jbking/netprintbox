@@ -21,6 +21,7 @@ def ls_rec(client, path):
 
 
 def obtain_file(client, path):
+    logging.debug("Obtaining file: %s", path)
     res = client.get_file(path)
     file_obj = StringIO(res.read())
     file_obj.name = path
@@ -28,6 +29,7 @@ def obtain_file(client, path):
 
 
 def put_file(client, path, file_obj, overwrite=True):
+    logging.debug("Putting file: %s", path)
     return client.put_file(path, file_obj, overwrite=overwrite)
 
 
