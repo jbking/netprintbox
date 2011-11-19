@@ -6,7 +6,7 @@ threadsafe: yes
 
 handlers:
 - url: /.*
-  script: src/main.app
+  script: main.app
 
 builtins:
 - admin_redirect: on
