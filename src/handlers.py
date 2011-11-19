@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from google.appengine.api import taskqueue
@@ -6,7 +7,7 @@ import dropbox
 import httplib2
 
 import netprint
-import commands.dropbox
+from commands.dropbox import delete_file, load_netprint_account_info
 from commands.netprintbox import sync_dropbox_netprint, put_from_dropbox
 import settings
 import data
@@ -66,11 +67,37 @@ class CronHandler(webapp2.RequestHandler):
             taskqueue.add(url='/task/check', params={'key': key})
 
 
+# XXX need user ref to ignore filename conflict.
 def custom_put(dropbox_client, netprint_client,
                dropbox_item, netprint_item):
-    excludes = ['/account.ini', '/report.txt']
-    if ((dropbox_item is not None and dropbox_item['path'] not in excludes)
-        and netprint_item is None):
+    # detect only situation a file in dropbox but not in netprint.
+    if dropbox_item is not None and netprint_item is None:
+        path = dropbox_item['path']
+        rev = dropbox_item['rev']
+
+        # excludes system generating files at all.
+        if path in ('/account.ini', '/report.txt'):
+            return
+
+        query = data.DropboxFileInfo.all().filter('path = ', path)
+        # XXX transaction control
+        if query.count() == 0:
+            info = data.DropboxFileInfo(path=path,
+                                        rev=rev)
+            info.put()
+        elif query.count() == 1:
+            # Current strategy for existing entry:
+            # 1. upload new one if file is updated.
+            # 2. delete entry from datastore and dropbox otherwise.
+            info = query.get()
+            if info.rev == rev:
+                info.delete()
+                delete_file(dropbox_client, path)
+                return
+            info.rev = rev
+            info.put()
+        else:
+            raise ValueError("Duplicated path? %s" % path)
         put_from_dropbox(dropbox_client, netprint_client,
                          dropbox_item, netprint_item)
 
@@ -88,8 +115,8 @@ class QueueWorker(webapp2.RequestHandler):
         session.set_token(user.access_key, user.access_secret)
 
         dropbox_client = dropbox.client.DropboxClient(session)
-        (netprint_username, netprint_password) = commands\
-                .dropbox.load_netprint_account_info(dropbox_client)
+        (netprint_username, netprint_password) = \
+                load_netprint_account_info(dropbox_client)
         netprint_client = netprint.Client(httplib2.Http(),
                                           settings.USER_AGENT)
         netprint_client.login(netprint_username, netprint_password)

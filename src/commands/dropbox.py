@@ -1,5 +1,7 @@
+import logging
 from ConfigParser import ConfigParser
 from StringIO import StringIO
+
 from dropbox_utils import traverse
 
 
@@ -30,6 +32,7 @@ def put_file(client, path, file_obj, overwrite=True):
 
 
 def delete_file(client, path):
+    logging.debug("Deleting file: %s", path)
     return client.file_delete(path)
 
 
