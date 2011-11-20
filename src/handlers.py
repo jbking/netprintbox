@@ -66,6 +66,7 @@ class AuthCallbackHandler(webapp2.RequestHandler):
         data.OAuthRequestToken.delete(key)
 
         self.response.status = 200
+        # XXX redirect
         self.response.write("Saved :)")
 
 
@@ -139,5 +140,6 @@ class QueueWorker(webapp2.RequestHandler):
         sync_dropbox_netprint(dropbox_client, netprint_client,
                               transaction.sync)
 
+        # XXX generate report
         for item in netprint_client.list():
             logging.debug(item._asdict())
