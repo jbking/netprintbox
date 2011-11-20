@@ -31,7 +31,7 @@ class AuthHandler(webapp2.RequestHandler):
         token.key = request_token.key
         token.token = str(request_token)
         token.put()
-        callback_url = 'http://localhost:8080/dropbox/callback'
+        callback_url = 'http://%s/dropbox/callback' % str(self.request.host)
         authz_url = session.build_authorize_url(request_token, callback_url)
         self.response.status = 302
         self.response.headerlist = [('Location', authz_url)]
@@ -47,11 +47,20 @@ class AuthCallbackHandler(webapp2.RequestHandler):
         client = dropbox.client.DropboxClient(session)
         account_info = client.account_info()
 
-        user = data.DropboxUser(uid=str(account_info['uid']),
-                                email=account_info['email'],
-                                display_name=account_info['display_name'],
-                                access_key=session.token.key,
-                                access_secret=session.token.secret)
+        uid = str(account_info['uid'])
+        q = data.DropboxUser.all().filter('uid = ', uid)
+        if q.count() == 0:
+            user = data.DropboxUser(uid=uid,
+                                    email=account_info['email'],
+                                    display_name=account_info['display_name'],
+                                    access_key=session.token.key,
+                                    access_secret=session.token.secret)
+        else:
+            user = q.get()
+            user.email = account_info['email']
+            user.display_name = account_info['display_name']
+            user.access_key = session.token.key
+            user.access_secret = session.token.secret
         user.put()
 
         data.OAuthRequestToken.delete(key)

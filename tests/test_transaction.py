@@ -66,6 +66,35 @@ class SyncTransactionTest(TestCase):
         self.assertEqual(put_commands[0].read(), 'test')
 
     @attr(test_type='unit')
+    def test_transaction_isolation(self):
+        import data
+
+        user1 = self.create_user()
+        user2 = self.create_user()
+        transaction1 = self._getOUT(user1)
+        transaction2 = self._getOUT(user2)
+
+        class dropbox_client(object):
+            @staticmethod
+            def get_file(*args):
+                return StringIO('test')
+
+        class netprint_client(object):
+            @staticmethod
+            def send(file_obj):
+                pass
+
+        transaction1.sync(dropbox_client, netprint_client,
+                          dict(path='path', rev='rev'), None)
+        self.assertEqual(data.DropboxFileInfo.all().ancestor(user1).count(), 1)
+        self.assertEqual(data.DropboxFileInfo.all().ancestor(user2).count(), 0)
+
+        transaction2.sync(dropbox_client, netprint_client,
+                          dict(path='path', rev='rev'), None)
+        self.assertEqual(data.DropboxFileInfo.all().ancestor(user1).count(), 1)
+        self.assertEqual(data.DropboxFileInfo.all().ancestor(user2).count(), 1)
+
+    @attr(test_type='unit')
     def test_modified_file(self):
         import data
 
