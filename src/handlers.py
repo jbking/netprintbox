@@ -7,7 +7,7 @@ import dropbox
 import httplib2
 
 import netprint
-from commands.dropbox import delete_file, load_netprint_account_info
+from commands.dropbox import ls, delete_file, load_netprint_account_info
 from commands.netprintbox import sync_dropbox_netprint, put_from_dropbox
 import settings
 import data
@@ -66,9 +66,9 @@ class AuthCallbackHandler(webapp2.RequestHandler):
 
         data.OAuthRequestToken.delete(key)
 
-        self.response.status = 200
-        # XXX redirect
-        self.response.write("Saved :)")
+        redirect_url = '/guide/setup?key=%s' % user.access_key
+        self.response.status = 302
+        self.response.headerlist = [('Location', redirect_url)]
 
 
 class CronHandler(webapp2.RequestHandler):
@@ -145,3 +145,36 @@ class QueueWorker(webapp2.RequestHandler):
         # XXX generate report
         for item in netprint_client.list():
             logging.debug(item._asdict())
+
+
+class SetupWizard(webapp2.RequestHandler):
+    def get(self):
+        key = self.request.GET['key']
+        q = data.DropboxUser.all().filter('access_key = ', key)
+        if q.count() != 0:
+            self.response.status = 400
+        user = q.get()
+        logging.debug('USER: %s', user)
+
+        session = get_session()
+        session.set_token(user.access_key, user.access_secret)
+        client = dropbox.client.DropboxClient(session)
+
+        try:
+            ls(client, settings.ACCOUNT_INFO_PATH)
+        except dropbox.rest.ErrorResponse:
+            self.step1()
+
+        try:
+            load_netprint_account_info(client)
+        except dropbox.rest.ErrorResponse:
+            self.step1(error=True)
+        else:
+            self.step2()
+
+    def step1(self, error=True):
+        logging.info("SETP1 with error: %s", error)
+        self.response.write('step1')
+
+    def step2(self):
+        self.response.write('step2')

@@ -13,4 +13,5 @@ app = webapp2.WSGIApplication([
     (r'/dropbox/callback', handlers.AuthCallbackHandler),
     (r'/task/sync', handlers.CronHandler),
     (r'/task/check', handlers.QueueWorker),
+    (r'/guide/setup', handlers.SetupWizard)
     ])
