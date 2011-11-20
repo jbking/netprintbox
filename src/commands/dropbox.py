@@ -2,6 +2,7 @@ import logging
 from ConfigParser import ConfigParser
 from StringIO import StringIO
 
+import settings
 from dropbox_utils import traverse
 
 
@@ -38,7 +39,7 @@ def delete_file(client, path):
     return client.file_delete(path)
 
 
-def load_netprint_account_info(client, path='/account.ini'):
+def load_netprint_account_info(client, path=settings.ACCOUNT_INFO_PATH):
     config = ConfigParser()
     config.readfp(obtain_file(client, path))
     return (config.get('netprint', 'username'),

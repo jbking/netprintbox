@@ -89,7 +89,7 @@ class SyncTransaction(object):
             rev = dropbox_item['rev']
 
             # excludes system generating files at all.
-            if path in ('/account.ini', '/report.txt'):
+            if path in (settings.ACCOUNT_INFO_PATH, settings.REPORT_PATH):
                 return
 
             def txn():

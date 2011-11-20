@@ -154,6 +154,7 @@ class SyncTransactionTest(TestCase):
     @attr(test_type='unit')
     def test_ignore_generated(self):
         import data
+        import settings
 
         user = self.create_user()
         transaction = self._getOUT(user)
@@ -164,7 +165,7 @@ class SyncTransactionTest(TestCase):
         class netprint_client(object):
             pass
 
-        for ignore_path in ('/account.ini', '/report.txt'):
+        for ignore_path in (settings.ACCOUNT_INFO_PATH, settings.REPORT_PATH):
             transaction.sync(dropbox_client, netprint_client,
                              dict(path=ignore_path, rev='rev'), None)
         q = data.DropboxFileInfo.all().ancestor(user)
