@@ -66,39 +66,45 @@ class CronHandler(webapp2.RequestHandler):
             taskqueue.add(url='/task/check', params={'key': key})
 
 
-# XXX need user ref to ignore filename conflict.
-def custom_put(dropbox_client, netprint_client,
-               dropbox_item, netprint_item):
-    # detect only situation a file in dropbox but not in netprint.
-    if dropbox_item is not None and netprint_item is None:
-        path = dropbox_item['path']
-        rev = dropbox_item['rev']
+class SyncTransaction(object):
+    def __init__(self, dropbox_user):
+        self.dropbox_user = dropbox_user
 
-        # excludes system generating files at all.
-        if path in ('/account.ini', '/report.txt'):
-            return
+    def sync(self, dropbox_client, netprint_client,
+                   dropbox_item, netprint_item):
+        # detect only situation a file in dropbox but not in netprint.
+        if dropbox_item is not None and netprint_item is None:
+            path = dropbox_item['path']
+            rev = dropbox_item['rev']
 
-        query = data.DropboxFileInfo.all().filter('path = ', path)
-        # XXX transaction control
-        if query.count() == 0:
-            info = data.DropboxFileInfo(path=path,
-                                        rev=rev)
-            info.put()
-        elif query.count() == 1:
-            # Current strategy for existing entry:
-            # 1. upload new one if file is updated.
-            # 2. delete entry from datastore and dropbox otherwise.
-            info = query.get()
-            if info.rev == rev:
-                info.delete()
-                delete_file(dropbox_client, path)
+            # excludes system generating files at all.
+            if path in ('/account.ini', '/report.txt'):
                 return
-            info.rev = rev
-            info.put()
-        else:
-            raise ValueError("Duplicated path? %s" % path)
-        put_from_dropbox(dropbox_client, netprint_client,
-                         dropbox_item, netprint_item)
+
+            query = data.DropboxFileInfo.all()\
+                        .ancestor(self.dropbox_user)\
+                        .filter('path = ', path)
+            # XXX transaction control
+            if query.count() == 0:
+                info = data.DropboxFileInfo(parent=self.dropbox_user,
+                                            path=path,
+                                            rev=rev)
+                info.put()
+            elif query.count() == 1:
+                # Current strategy for existing entry:
+                # 1. upload new one if file is updated.
+                # 2. delete entry from datastore and dropbox otherwise.
+                info = query.get()
+                if info.rev == rev:
+                    info.delete()
+                    delete_file(dropbox_client, path)
+                    return
+                info.rev = rev
+                info.put()
+            else:
+                raise ValueError("Duplicated path? %s" % path)
+            put_from_dropbox(dropbox_client, netprint_client,
+                             dropbox_item, netprint_item)
 
 
 class QueueWorker(webapp2.RequestHandler):
@@ -111,16 +117,18 @@ class QueueWorker(webapp2.RequestHandler):
         random_sleep()
 
         user = data.DropboxUser.get(key)
+        transaction = SyncTransaction(user)
+
         session = get_session()
         session.set_token(user.access_key, user.access_secret)
-
         dropbox_client = dropbox.client.DropboxClient(session)
         (netprint_username, netprint_password) = \
                 load_netprint_account_info(dropbox_client)
         netprint_client = netprint.Client(httplib2.Http(),
                                           settings.USER_AGENT)
         netprint_client.login(netprint_username, netprint_password)
-        sync_dropbox_netprint(dropbox_client, netprint_client, custom_put)
+        sync_dropbox_netprint(dropbox_client, netprint_client,
+                              transaction.sync)
 
         for item in netprint_client.list():
             logging.debug(item._asdict())
