@@ -1,3 +1,4 @@
+import logging
 from commands import dropbox
 from dropbox_utils import traverse
 from netprint_utils import normalize_name
@@ -53,7 +54,7 @@ def sync_dropbox_netprint(dropbox_client, netprint_client, callback):
 def put_from_dropbox(dropbox_client, netprint_client,
                      dropbox_item, netprint_item):
     if dropbox_item is not None and netprint_item is None:
-        print('Put %s into netprint' % dropbox_item['path'])
+        logging.debug('Put %s into netprint', dropbox_item['path'])
         file_obj = dropbox.obtain_file(dropbox_client, dropbox_item['path'])
         netprint_client.send(file_obj)
 
@@ -61,6 +62,6 @@ def put_from_dropbox(dropbox_client, netprint_client,
 def delete_from_dropbox(dropbox_client, netprint_client,
                         dropbox_item, netprint_item):
     if dropbox_item is not None and netprint_item is None:
-        print('Delete %s from dropbox' % dropbox_item['path'])
+        logging.debug('Delete %s from dropbox', dropbox_item['path'])
         dropbox.delete_file(dropbox_item['path'])
 #####################################################

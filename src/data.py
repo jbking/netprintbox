@@ -14,7 +14,7 @@ class DropboxUser(db.Model):
 
 class DropboxFileInfo(db.Model):
     path = db.StringProperty(required=True)
-    modified = db.DateTimeProperty(required=True, indexed=False)
+    rev = db.StringProperty(required=True, indexed=False)
 
 
 class OAuthRequestToken(object):

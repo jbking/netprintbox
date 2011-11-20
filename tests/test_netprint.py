@@ -84,14 +84,11 @@ class ClientTest(TestCase):
 
 class FunctionalClientTest(TestCase):
     def setUp(self):
-        try:
-            from google.appengine.ext.testbed import Testbed
+        from google.appengine.ext.testbed import Testbed
 
-            self.testbed = Testbed()
-            self.testbed.activate()
-            self.testbed.init_urlfetch_stub()
-        except ImportError:
-            pass
+        self.testbed = Testbed()
+        self.testbed.activate()
+        self.testbed.init_urlfetch_stub()
 
         self.username = os.environ.get('NETPRINT_USERNAME')
         self.password = os.environ.get('NETPRINT_PASSWORD')
@@ -100,8 +97,7 @@ class FunctionalClientTest(TestCase):
                            "NETPRINT_USERNAME and NETPRINT_PASSWORD")
 
     def tearDown(self):
-        if getattr(self, 'testbed', None):
-            self.testbed.deactivate()
+        self.testbed.deactivate()
 
     def _getOUT(self):
         import httplib2
