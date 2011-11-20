@@ -9,8 +9,8 @@ import handlers
 
 
 app = webapp2.WSGIApplication([
-    (r'/dropbox', handlers.AuthHandler),
-    (r'/dropbox_callback', handlers.AuthCallbackHandler),
+    (r'/dropbox/authorize', handlers.AuthHandler),
+    (r'/dropbox/callback', handlers.AuthCallbackHandler),
     (r'/task/sync', handlers.CronHandler),
     (r'/task/check', handlers.QueueWorker),
     ])

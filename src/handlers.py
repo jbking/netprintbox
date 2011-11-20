@@ -31,7 +31,7 @@ class AuthHandler(webapp2.RequestHandler):
         token.key = request_token.key
         token.token = str(request_token)
         token.put()
-        callback_url = 'http://localhost:8080/dropbox_callback'
+        callback_url = 'http://localhost:8080/dropbox/callback'
         authz_url = session.build_authorize_url(request_token, callback_url)
         self.response.status = 302
         self.response.headerlist = [('Location', authz_url)]
