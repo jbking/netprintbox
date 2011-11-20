@@ -215,3 +215,57 @@ class SyncTransactionTest(TestCase):
 
         q = data.DropboxFileInfo.all().ancestor(user)
         self.assertEqual(q.count(), 0)
+
+    @attr(test_type='unit')
+    def test_dropbox_cause_an_error(self):
+        import data
+
+        user = self.create_user()
+        transaction = self._getOUT(user)
+
+        class DropboxError(Exception):
+            pass
+
+        class dropbox_client(object):
+            @staticmethod
+            def get_file(path):
+                raise DropboxError
+
+        class netprint_client(object):
+            pass
+
+        self.assertRaises(DropboxError,
+                          transaction.sync,
+                          dropbox_client, netprint_client,
+                          dict(path='path', rev='rev'), None)
+
+        q = data.DropboxFileInfo.all().ancestor(user)
+        self.assertEqual(q.count(), 0)
+
+    @attr(test_type='unit')
+    def test_netprint_cause_an_error(self):
+        import data
+
+        user = self.create_user()
+        transaction = self._getOUT(user)
+
+        class dropbox_client(object):
+            @staticmethod
+            def get_file(path):
+                return StringIO('test')
+
+        class NetprintError(Exception):
+            pass
+
+        class netprint_client(object):
+            @staticmethod
+            def send(file_obj):
+                raise NetprintError
+
+        self.assertRaises(NetprintError,
+                          transaction.sync,
+                          dropbox_client, netprint_client,
+                          dict(path='path', rev='rev'), None)
+
+        q = data.DropboxFileInfo.all().ancestor(user)
+        self.assertEqual(q.count(), 0)

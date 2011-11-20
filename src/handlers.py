@@ -1,6 +1,7 @@
 import logging
 
 from google.appengine.api import taskqueue
+from google.appengine.ext import db
 import webapp2
 import dropbox
 import httplib2
@@ -91,30 +92,31 @@ class SyncTransaction(object):
             if path in ('/account.ini', '/report.txt'):
                 return
 
-            query = data.DropboxFileInfo.all()\
-                        .ancestor(self.dropbox_user)\
-                        .filter('path = ', path)
-            # XXX transaction control
-            if query.count() == 0:
-                info = data.DropboxFileInfo(parent=self.dropbox_user,
-                                            path=path,
-                                            rev=rev)
-                info.put()
-            elif query.count() == 1:
-                # Current strategy for existing entry:
-                # 1. upload new one if file is updated.
-                # 2. delete entry from datastore and dropbox otherwise.
-                info = query.get()
-                if info.rev == rev:
-                    info.delete()
-                    delete_file(dropbox_client, path)
-                    return
-                info.rev = rev
-                info.put()
-            else:
-                raise ValueError("Duplicated path? %s" % path)
-            put_from_dropbox(dropbox_client, netprint_client,
-                             dropbox_item, netprint_item)
+            def txn():
+                query = data.DropboxFileInfo.all()\
+                            .ancestor(self.dropbox_user)\
+                            .filter('path = ', path)
+                if query.count() == 0:
+                    info = data.DropboxFileInfo(parent=self.dropbox_user,
+                                                path=path,
+                                                rev=rev)
+                    info.put()
+                elif query.count() == 1:
+                    # Current strategy for existing entry:
+                    # 1. upload new one if file is updated.
+                    # 2. delete entry from datastore and dropbox otherwise.
+                    info = query.get()
+                    if info.rev == rev:
+                        info.delete()
+                        delete_file(dropbox_client, path)
+                        return
+                    info.rev = rev
+                    info.put()
+                else:
+                    raise ValueError("Duplicated path? %s" % path)
+                put_from_dropbox(dropbox_client, netprint_client,
+                                 dropbox_item, netprint_item)
+            db.run_in_transaction(txn)
 
 
 class QueueWorker(webapp2.RequestHandler):
