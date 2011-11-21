@@ -8,6 +8,7 @@ import httplib2
 
 import netprint
 from commands.dropbox import ls, delete_file, load_netprint_account_info
+from dropbox_utils import normalize_name
 from commands.netprintbox import sync_dropbox_netprint, put_from_dropbox
 import settings
 import data
@@ -97,10 +98,12 @@ class SyncTransaction(object):
                             .ancestor(self.dropbox_user)\
                             .filter('path = ', path)
                 if query.count() == 0:
-                    info = data.DropboxFileInfo(parent=self.dropbox_user,
-                                                path=path,
-                                                rev=rev)
-                    info.put()
+                    netprint_name = normalize_name(path)
+                    file_info = data.DropboxFileInfo(parent=self.dropbox_user,
+                                                     path=path,
+                                                     rev=rev,
+                                                     netprint_name=netprint_name)
+                    file_info.put()
                 elif query.count() == 1:
                     # Current strategy for existing entry:
                     # 1. upload new one if file is updated.
