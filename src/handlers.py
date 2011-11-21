@@ -150,14 +150,15 @@ class QueueWorker(webapp2.RequestHandler):
             logging.debug(item._asdict())
 
 
-class SetupWizard(webapp2.RequestHandler):
+class SetupGuide(webapp2.RequestHandler):
     def get(self):
         key = self.request.GET['key']
         q = data.DropboxUser.all().filter('access_key = ', key)
-        if q.count() != 0:
-            self.response.status = 400
+        if q.count() != 1:
+            self.ignore()
+            return
+
         user = q.get()
-        logging.debug('USER: %s', user)
 
         session = get_session()
         session.set_token(user.access_key, user.access_secret)
@@ -167,6 +168,7 @@ class SetupWizard(webapp2.RequestHandler):
             ls(client, settings.ACCOUNT_INFO_PATH)
         except dropbox.rest.ErrorResponse:
             self.step1()
+            return
 
         try:
             load_netprint_account_info(client)
@@ -175,9 +177,15 @@ class SetupWizard(webapp2.RequestHandler):
         else:
             self.step2()
 
+    def ignore(self):
+        self.response.status = 400
+
     def step1(self, error=True):
+        """ no account info """
         logging.info("SETP1 with error: %s", error)
+        # XXX put account.ini template if not exists
         self.response.write('step1')
 
-    def step2(self):
+    def step2(self, error=True):
+        """ account info is correct, but not synced yet """
         self.response.write('step2')
