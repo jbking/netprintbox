@@ -7,7 +7,8 @@ import dropbox
 import httplib2
 
 import netprint
-from commands.dropbox import delete_file, load_netprint_account_info
+from commands.dropbox import ls, delete_file, load_netprint_account_info
+from dropbox_utils import normalize_name
 from commands.netprintbox import sync_dropbox_netprint, put_from_dropbox
 import settings
 import data
@@ -66,9 +67,9 @@ class AuthCallbackHandler(webapp2.RequestHandler):
 
         data.OAuthRequestToken.delete(key)
 
-        self.response.status = 200
-        # XXX redirect
-        self.response.write("Saved :)")
+        redirect_url = '/guide/setup?key=%s' % user.access_key
+        self.response.status = 302
+        self.response.headerlist = [('Location', redirect_url)]
 
 
 class CronHandler(webapp2.RequestHandler):
@@ -89,7 +90,7 @@ class SyncTransaction(object):
             rev = dropbox_item['rev']
 
             # excludes system generating files at all.
-            if path in ('/account.ini', '/report.txt'):
+            if path in (settings.ACCOUNT_INFO_PATH, settings.REPORT_PATH):
                 return
 
             def txn():
@@ -97,10 +98,12 @@ class SyncTransaction(object):
                             .ancestor(self.dropbox_user)\
                             .filter('path = ', path)
                 if query.count() == 0:
-                    info = data.DropboxFileInfo(parent=self.dropbox_user,
-                                                path=path,
-                                                rev=rev)
-                    info.put()
+                    netprint_name = normalize_name(path)
+                    file_info = data.DropboxFileInfo(parent=self.dropbox_user,
+                                                     path=path,
+                                                     rev=rev,
+                                                     netprint_name=netprint_name)
+                    file_info.put()
                 elif query.count() == 1:
                     # Current strategy for existing entry:
                     # 1. upload new one if file is updated.
@@ -145,3 +148,44 @@ class QueueWorker(webapp2.RequestHandler):
         # XXX generate report
         for item in netprint_client.list():
             logging.debug(item._asdict())
+
+
+class SetupGuide(webapp2.RequestHandler):
+    def get(self):
+        key = self.request.GET['key']
+        q = data.DropboxUser.all().filter('access_key = ', key)
+        if q.count() != 1:
+            self.ignore()
+            return
+
+        user = q.get()
+
+        session = get_session()
+        session.set_token(user.access_key, user.access_secret)
+        client = dropbox.client.DropboxClient(session)
+
+        try:
+            ls(client, settings.ACCOUNT_INFO_PATH)
+        except dropbox.rest.ErrorResponse:
+            self.step1()
+            return
+
+        try:
+            load_netprint_account_info(client)
+        except dropbox.rest.ErrorResponse:
+            self.step1(error=True)
+        else:
+            self.step2()
+
+    def ignore(self):
+        self.response.status = 400
+
+    def step1(self, error=True):
+        """ no account info """
+        logging.info("SETP1 with error: %s", error)
+        # XXX put account.ini template if not exists
+        self.response.write('step1')
+
+    def step2(self, error=True):
+        """ account info is correct, but not synced yet """
+        self.response.write('step2')
