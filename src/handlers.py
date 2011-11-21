@@ -8,7 +8,7 @@ import httplib2
 
 import netprint
 from commands.dropbox import ls, delete_file, load_netprint_account_info
-from dropbox_utils import normalize_name
+from netprint_utils import normalize_name
 from commands.netprintbox import sync_dropbox_netprint, put_from_dropbox
 import settings
 import data

@@ -15,7 +15,7 @@ class ClientTest(TestCase):
         from netprint import Client
         return Client(browser)
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_login(self):
         from netprint import Client
 
@@ -38,7 +38,7 @@ class ClientTest(TestCase):
         self.assertEqual(client.session_key,
                 "9TubQ6yo1iRnWNk6qnYOlll9rbEmOiUfOFcxdcTLPMkA")
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_login_failed(self):
         from urllib2 import URLError
         from netprint import LoginFailure
@@ -51,7 +51,7 @@ class ClientTest(TestCase):
         client = self._getOUT(browser)
         self.assertRaises(LoginFailure, client.login, 'username', 'password')
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_check_trim_content(self):
         from BeautifulSoup import BeautifulSoup
 
@@ -63,7 +63,7 @@ class ClientTest(TestCase):
         self.assertIsNone(client._soup.parent)
         self.assertIsNone(client._soup.nextSibling)
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_list(self):
         from BeautifulSoup import BeautifulSoup
 
@@ -110,13 +110,13 @@ class FunctionalClientTest(TestCase):
                       'AppleWebKit/533.16 (KHTML, like Gecko) '
                       'Version/5.0 Safari/533.16')
 
-    @attr(test_type='functional')
+    @attr('functional', 'heavy')
     def test_login(self):
         client = self._getOUT()
         client.login(self.username, self.password, retry=1)
         self.assertIsNotNone(client.session_key)
 
-    @attr(test_type='functional')
+    @attr('functional', 'heavy')
     def test_session_error(self):
         from netprint import UnexpectedContent
 
@@ -127,7 +127,7 @@ class FunctionalClientTest(TestCase):
         self.assertNotEqual(client1.session_key, client2.session_key)
         self.assertRaises(UnexpectedContent, client1.reload)
 
-    @attr(test_type='functional')
+    @attr('functional', 'heavy')
     def test_send_delete(self):
         client = self._getOUT()
         client.login(self.username, self.password, retry=1)
@@ -140,7 +140,7 @@ class FunctionalClientTest(TestCase):
         client.reload()
         self.assertNotIn('sudoku01', [item.name for item in client.list()])
 
-    @attr(test_type='functional')
+    @attr('functional', 'heavy')
     def test_send_delete_with_fileobj(self):
         client = self._getOUT()
         client.login(self.username, self.password, retry=1)

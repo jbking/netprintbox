@@ -60,7 +60,7 @@ class SetupGuideTest(TestCase):
         from main import app
         return app
 
-    @attr(test_type='functional')
+    @attr('functional', 'light')
     def test_guide(self):
         app = self._getAUT()
 

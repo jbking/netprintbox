@@ -21,7 +21,7 @@ class SyncTransactionTest(TestCase):
 
         return SyncTransaction(dropbox_user)
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_new_file(self):
         import data
 
@@ -51,7 +51,7 @@ class SyncTransactionTest(TestCase):
         self.assertEqual(len(put_commands), 1)
         self.assertEqual(put_commands[0].read(), 'test')
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_transaction_isolation(self):
         import data
 
@@ -80,7 +80,7 @@ class SyncTransactionTest(TestCase):
         self.assertEqual(data.DropboxFileInfo.all().ancestor(user1).count(), 1)
         self.assertEqual(data.DropboxFileInfo.all().ancestor(user2).count(), 1)
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_modified_file(self):
         import data
 
@@ -99,7 +99,8 @@ class SyncTransactionTest(TestCase):
             def send(file_obj):
                 put_commands.append(file_obj)
 
-        data.DropboxFileInfo(path='path', rev='prev').put()
+        data.DropboxFileInfo(parent=user, path='path', rev='prev',
+                             netprint_name='path').put()
 
         transaction.sync(dropbox_client, netprint_client,
                          dict(path='path', rev='rev'), None)
@@ -112,7 +113,7 @@ class SyncTransactionTest(TestCase):
         self.assertEqual(len(put_commands), 1)
         self.assertEqual(put_commands[0].read(), 'test')
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_expired_file(self):
         import data
 
@@ -128,7 +129,8 @@ class SyncTransactionTest(TestCase):
         class netprint_client(object):
             pass
 
-        data.DropboxFileInfo(parent=user, path='path', rev='rev').put()
+        data.DropboxFileInfo(parent=user, path='path', rev='rev',
+                             netprint_name='path').put()
 
         transaction.sync(dropbox_client, netprint_client,
                          dict(path='path', rev='rev'), None)
@@ -137,7 +139,7 @@ class SyncTransactionTest(TestCase):
         self.assertEqual(q.count(), 0)
         self.assertListEqual(deleted, ['path'])
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_ignore_generated(self):
         import data
         import settings
@@ -157,7 +159,7 @@ class SyncTransactionTest(TestCase):
         q = data.DropboxFileInfo.all().ancestor(user)
         self.assertEqual(q.count(), 0)
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_same_file(self):
         import data
 
@@ -170,9 +172,8 @@ class SyncTransactionTest(TestCase):
         class netprint_client(object):
             pass
 
-        data.DropboxFileInfo(parent=user,
-                             path='same_name',
-                             rev='rev').put()
+        data.DropboxFileInfo(parent=user, path='same_name', rev='rev',
+                             netprint_name='same_name').put()
 
         transaction.sync(dropbox_client, netprint_client,
                          dict(path='same_name', rev='rev'),
@@ -184,7 +185,7 @@ class SyncTransactionTest(TestCase):
         self.assertEqual(file_info.path, 'same_name')
         self.assertEqual(file_info.rev, 'rev')
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_netprint_has_original_file(self):
         import data
 
@@ -203,7 +204,7 @@ class SyncTransactionTest(TestCase):
         q = data.DropboxFileInfo.all().ancestor(user)
         self.assertEqual(q.count(), 0)
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_dropbox_cause_an_error(self):
         import data
 
@@ -229,7 +230,7 @@ class SyncTransactionTest(TestCase):
         q = data.DropboxFileInfo.all().ancestor(user)
         self.assertEqual(q.count(), 0)
 
-    @attr(test_type='unit')
+    @attr('unit', 'light')
     def test_netprint_cause_an_error(self):
         import data
 
