@@ -2,6 +2,8 @@ from StringIO import StringIO
 from unittest2 import TestCase
 from nose.plugins.attrib import attr
 
+from test_utils import create_user
+
 
 class SyncTransactionTest(TestCase):
     def setUp(self):
@@ -19,27 +21,11 @@ class SyncTransactionTest(TestCase):
 
         return SyncTransaction(dropbox_user)
 
-    def create_user(self, **kwargs):
-        import data
-
-        default = {
-                'uid': 'uid',
-                'email': 'email',
-                'display_name': 'display_name',
-                'access_key': 'access_key',
-                'access_secret': 'access_secret',
-            }
-        params = dict(default)
-        params.update(kwargs)
-        user = data.DropboxUser(**params)
-        user.put()
-        return user
-
     @attr(test_type='unit')
     def test_new_file(self):
         import data
 
-        user = self.create_user()
+        user = create_user()
         transaction = self._getOUT(user)
 
         class dropbox_client(object):
@@ -69,8 +55,8 @@ class SyncTransactionTest(TestCase):
     def test_transaction_isolation(self):
         import data
 
-        user1 = self.create_user()
-        user2 = self.create_user()
+        user1 = create_user()
+        user2 = create_user()
         transaction1 = self._getOUT(user1)
         transaction2 = self._getOUT(user2)
 
@@ -98,7 +84,7 @@ class SyncTransactionTest(TestCase):
     def test_modified_file(self):
         import data
 
-        user = self.create_user()
+        user = create_user()
         transaction = self._getOUT(user)
 
         class dropbox_client(object):
@@ -130,7 +116,7 @@ class SyncTransactionTest(TestCase):
     def test_expired_file(self):
         import data
 
-        user = self.create_user()
+        user = create_user()
         transaction = self._getOUT(user)
 
         deleted = []
@@ -156,7 +142,7 @@ class SyncTransactionTest(TestCase):
         import data
         import settings
 
-        user = self.create_user()
+        user = create_user()
         transaction = self._getOUT(user)
 
         class dropbox_client(object):
@@ -175,7 +161,7 @@ class SyncTransactionTest(TestCase):
     def test_same_file(self):
         import data
 
-        user = self.create_user()
+        user = create_user()
         transaction = self._getOUT(user)
 
         class dropbox_client(object):
@@ -202,7 +188,7 @@ class SyncTransactionTest(TestCase):
     def test_netprint_has_original_file(self):
         import data
 
-        user = self.create_user()
+        user = create_user()
         transaction = self._getOUT(user)
 
         class dropbox_client(object):
@@ -221,7 +207,7 @@ class SyncTransactionTest(TestCase):
     def test_dropbox_cause_an_error(self):
         import data
 
-        user = self.create_user()
+        user = create_user()
         transaction = self._getOUT(user)
 
         class DropboxError(Exception):
@@ -247,7 +233,7 @@ class SyncTransactionTest(TestCase):
     def test_netprint_cause_an_error(self):
         import data
 
-        user = self.create_user()
+        user = create_user()
         transaction = self._getOUT(user)
 
         class dropbox_client(object):
