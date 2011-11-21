@@ -15,6 +15,8 @@ class DropboxUser(db.Model):
 class DropboxFileInfo(db.Model):
     path = db.StringProperty(required=True)
     rev = db.StringProperty(required=True, indexed=False)
+    netprint_id = db.StringProperty()
+    netprint_name = db.StringProperty(required=True)
 
 
 class OAuthRequestToken(object):
