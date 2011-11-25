@@ -111,8 +111,11 @@ class Client(object):
     login_url = url_prefix + '/login.html'
     manage_url = url_prefix + '/cgi-bin/mn.cgi'
 
-    def __init__(self, browser, user_agent=None):
-        self.browser = browser
+    def __init__(self, http_obj=None, user_agent=None):
+        if http_obj is None:
+            cache = DictCache()
+            http_obj = httplib2.Http(cache=cache)
+        self.http_obj = http_obj
         self.user_agent = user_agent
         self._soup = None
 
@@ -142,7 +145,7 @@ class Client(object):
             else:
                 body = urlencode(body, True)
                 headers.update(FORMENCODE_HEADERS)
-        (response, content) = self.browser.request(uri,
+        (response, content) = self.http_obj.request(uri,
                 method=method, headers=headers, body=body, **kwargs)
         assert response.status in status, \
                "%s %s" % (response.status, response.reason)
