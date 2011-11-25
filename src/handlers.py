@@ -7,9 +7,11 @@ import dropbox
 import httplib2
 
 import netprint
-from commands.dropbox import ls, delete_file, load_netprint_account_info
 from netprint_utils import normalize_name
+from commands.dropbox import (ls, delete_file as dropbox_delete_file,
+                              load_netprint_account_info)
 from commands.netprintbox import sync_dropbox_netprint, put_from_dropbox
+from commands.netprint import delete_file as netprint_delete_file
 import settings
 import data
 from utils import random_sleep
@@ -105,20 +107,38 @@ class SyncTransaction(object):
                                                      netprint_name=netprint_name)
                     file_info.put()
                 elif query.count() == 1:
-                    # Current strategy for existing entry:
-                    # 1. upload new one if file is updated.
-                    # 2. delete entry from datastore and dropbox otherwise.
-                    info = query.get()
-                    if info.rev == rev:
-                        info.delete()
-                        delete_file(dropbox_client, path)
+                    file_info = query.get()
+                    if file_info.rev != rev:
+                        # upload new one if file is updated.
+                        file_info.rev = rev
+                        file_info.put()
+                    elif file_info.netprint_id is None:
+                        # waiting for id assiging.
                         return
-                    info.rev = rev
-                    info.put()
+                    else:
+                        # delete entry from datastore and dropbox otherwise.
+                        file_info.delete()
+                        dropbox_delete_file(dropbox_client, path)
+                        return
                 else:
                     raise ValueError("Duplicated path? %s" % path)
                 put_from_dropbox(dropbox_client, netprint_client,
                                  dropbox_item, netprint_item)
+            db.run_in_transaction(txn)
+
+        if dropbox_item is None and netprint_item is not None:
+            """
+            Delete file and info.
+            """
+            def txn():
+                netprint_id = netprint_item['id']
+                query = data.DropboxFileInfo.all()\
+                            .ancestor(self.dropbox_user)\
+                            .filter('netprint_id = ', netprint_id)
+
+                for file_info in query:
+                    file_info.delete()
+                netprint_delete_file(netprint_client, netprint_id)
             db.run_in_transaction(txn)
 
 
@@ -145,8 +165,13 @@ class QueueWorker(webapp2.RequestHandler):
         sync_dropbox_netprint(dropbox_client, netprint_client,
                               transaction.sync)
 
-        # XXX generate report
         for item in netprint_client.list():
+            file_info = data.DropboxFileInfo.all().ancestor(user)\
+                    .filter('netprint_name = ', item.name).get()
+            if file_info:
+                file_info.netprint_id = item.id
+                file_info.put()
+            # XXX generate report
             logging.debug(item._asdict())
 
 
