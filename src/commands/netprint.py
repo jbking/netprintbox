@@ -2,5 +2,5 @@ def ls(client):
     return client.list()
 
 
-def delete_file(client, name):
-    client.delete(name)
+def delete_file(client, netprint_id):
+    client.delete(netprint_id)

@@ -17,7 +17,7 @@ class SyncTransactionTest(TestCase):
         self.testbed.deactivate()
 
     def _getOUT(self, dropbox_user):
-        from handlers import SyncTransaction
+        from transaction import SyncTransaction
 
         return SyncTransaction(dropbox_user)
 
@@ -130,7 +130,8 @@ class SyncTransactionTest(TestCase):
             pass
 
         data.DropboxFileInfo(parent=user, path='path', rev='rev',
-                             netprint_name='path').put()
+                             netprint_name='path',
+                             netprint_id='id').put()
 
         transaction.sync(dropbox_client, netprint_client,
                          dict(path='path', rev='rev'), None)
@@ -199,7 +200,7 @@ class SyncTransactionTest(TestCase):
             pass
 
         transaction.sync(dropbox_client, netprint_client,
-                         None, dict(name='same_name'))
+                         None, dict(id='original_id', name='same_name'))
 
         q = data.DropboxFileInfo.all().ancestor(user)
         self.assertEqual(q.count(), 0)
