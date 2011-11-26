@@ -55,7 +55,8 @@ def put_from_dropbox(dropbox_client, netprint_client,
                      dropbox_item, netprint_item):
     if dropbox_item is not None and netprint_item is None:
         logging.debug(u"Putting %r into netprint", dropbox_item['path'])
-        file_obj = dropbox.obtain_file(dropbox_client, dropbox_item['path'])
+        file_obj = dropbox.obtain_file(dropbox_client, dropbox_item['path'],
+                                       limit=2 * 1024 * 1024)
         netprint_client.send(file_obj)
 
 

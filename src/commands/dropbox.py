@@ -6,6 +6,10 @@ import settings
 from dropbox_utils import traverse, ensure_binary_string
 
 
+class OverLimit(ValueError):
+    pass
+
+
 def ls(client, path):
     path = ensure_binary_string(path)
     logging.debug(u"Listing metadata of: %r", path)
@@ -23,10 +27,12 @@ def ls_rec(client, path):
     return result
 
 
-def obtain_file(client, path):
+def obtain_file(client, path, limit=None):
     path = ensure_binary_string(path)
     logging.debug(u"Obtaining file: %r", path)
     res = client.get_file(path)
+    if limit and res.length > limit:
+        raise OverLimit("The response contains %d bytes data." % res.length)
     file_obj = StringIO(res.read())
     file_obj.name = path
     return file_obj
