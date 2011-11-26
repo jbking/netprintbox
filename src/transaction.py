@@ -78,3 +78,6 @@ class SyncTransaction(object):
         if dropbox_item is None and netprint_item is not None:
             db.run_in_transaction(self._delete_transaction,
                                   netprint_client, netprint_item)
+
+        # XXX How about a file exists on netprint,
+        #     but new one is uploaded on dropbox?
