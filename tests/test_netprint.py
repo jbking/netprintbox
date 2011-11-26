@@ -81,6 +81,13 @@ class ClientTest(TestCase):
         self.assertEqual(item.page_numbers, 3)
         self.assertEqual(item.valid_date, '2010/10/02')
 
+    @attr('unit', 'light')
+    def test_convert_to_encoding(self):
+        client = self._getOUT()
+        client._encoding = 'euc-jp'
+        self.assertEqual(client.ensure_encoding('テスト'),
+                         u'テスト'.encode('euc-jp'))
+
 
 class FunctionalClientTest(TestCase):
     def setUp(self):
@@ -132,26 +139,27 @@ class FunctionalClientTest(TestCase):
         client = self._getOUT()
         client.login(self.username, self.password, retry=1)
 
-        client.send('tests/data/sudoku01.jpg')
+        client.send('tests/data/数独01.jpg')
         client.reload()
-        self.assertIn('sudoku01', [item.name for item in client.list()])
+        self.assertIn(u'数独01', [item.name for item in client.list()])
 
         client.delete(item)
         client.reload()
-        self.assertNotIn('sudoku01', [item.name for item in client.list()])
+        self.assertNotIn(u'数独01', [item.name for item in client.list()])
 
     @attr('functional', 'heavy')
     def test_send_delete_with_fileobj(self):
         client = self._getOUT()
         client.login(self.username, self.password, retry=1)
 
-        client.send(file('tests/data/sudoku01.jpg'))
+        client.send(file('tests/data/数独01.jpg'))
         client.reload()
-        self.assertIn('sudoku01', [item.name for item in client.list()])
+        self.assertIn(u'数独01', [item.name for item in client.list()])
 
         client.delete(item)
         client.reload()
-        self.assertNotIn('sudoku01', [item.name for item in client.list()])
+        self.assertNotIn(u'数独01', [item.name for item in client.list()])
+
 """
 
 def test_send(context):

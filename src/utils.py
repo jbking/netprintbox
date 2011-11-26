@@ -2,7 +2,6 @@
 import random
 import sys
 import time
-import os
 import mimetypes
 
 import settings
@@ -25,10 +24,7 @@ def encode_multipart_data(data):
     for key, value in data.iteritems():
         header = 'Content-Disposition: form-data; name="%s"' % key
         if hasattr(value, "name"):
-            name = value.name
-            if isinstance(name, str):
-                name = name.decode(OS_FILESYSTEM_ENCODING)
-            header += '; filename="%s"' % os.path.split(name.encode("utf-8"))[-1]
+            header += '; filename="%s"' % value.name
             lines.append(header)
             mtypes = mimetypes.guess_type(value.name)
             if mtypes:

@@ -11,16 +11,18 @@ __version__ = "0.1"
 __email__ = "yusuke@jbking.org"
 
 
+import os
 import time
 import re
 import logging
 from urllib import urlencode
 from collections import namedtuple
+from StringIO import StringIO
 
 from BeautifulSoup import BeautifulSoup
 import httplib2
 
-from utils import is_multipart, encode_multipart_data
+from utils import is_multipart, encode_multipart_data, OS_FILESYSTEM_ENCODING
 
 
 header_row = [unicode(s, 'utf8') for s in
@@ -151,6 +153,15 @@ class Client(object):
                "%s %s" % (response.status, response.reason)
         return (response, content)
 
+    def ensure_encoding(self, s):
+        if isinstance(s, str):
+            # to unicode
+            s = s.decode(OS_FILESYSTEM_ENCODING)
+        if isinstance(s, unicode):
+            # to netprint encoding
+            s = s.encode(self._encoding, 'replace')
+        return s
+
     def login(self, username, password, retry=3):
         """
         Login to the Net print service.
@@ -181,12 +192,14 @@ class Client(object):
         else:
             raise LoginFailure("login failed")
         self._soup = soup  # update soup.
+        self._encoding = self._soup.originalEncoding
         self._check_displaying_main_page_then_trim()
 
     def go_home(self):
         (_, content) = self._request(
                 self.manage_url + '?s=' + self.session_key)
         self._soup = BeautifulSoup(content)  # update soup.
+        self._encoding = self._soup.originalEncoding
 
     def reload(self):
         self.go_home()
@@ -293,6 +306,10 @@ class Client(object):
         else:
             raise ValueError("unknown value of path_or_file")
 
+        name = self.ensure_encoding(os.path.split(f.name)[-1])
+        f = StringIO(f.read())
+        f.name = name
+
         if paper_size == PaperSize.L and color != Color.color:
             raise ValueError("L size printing only accept color")
         if need_secret == NeedSecret.Yes and secret_code is None:
@@ -309,8 +326,9 @@ class Client(object):
         link = new_file_list[0].parent['href']
 
         (_, content) = self._request(self.url_prefix + link)
-        # ignore invalid characters to BeautifulSoup recognize the content correctly.
-        content = content.decode('sjis', 'replace')
+        # XXX: Ignore invalid characters to
+        #      BeautifulSoup recognize the content correctly.
+        content = content.decode(self._encoding, 'replace')
         soup = BeautifulSoup(content)
 
         # Now must be on a file entry page
@@ -322,7 +340,7 @@ class Client(object):
             s=self.session_key,
             c=0,  # unknown
             m=2,  # unknown
-            re=0,  # unknown
+            re=1,  # unknown
             file1=f,
             papersize=paper_size,
             color=color,
