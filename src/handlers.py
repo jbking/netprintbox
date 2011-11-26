@@ -1,9 +1,7 @@
 # -*- coding:utf8 -*-
 import logging
-import os
 from StringIO import StringIO
 
-import tempita
 from google.appengine.api import taskqueue
 from webob import exc
 import webapp2
@@ -16,24 +14,8 @@ from commands.dropbox import ls, load_netprint_account_info, put_file
 from commands.netprintbox import sync_dropbox_netprint
 import settings
 from transaction import SyncTransaction
-from utils import random_sleep
-
-
-if settings.DEBUG:
-    httplib2.debuglevel = 1
-
-
-def get_session():
-    return dropbox.session.DropboxSession(settings.DROPBOX_APP_KEY,
-                                          settings.DROPBOX_APP_SECRET,
-                                          settings.DROPBOX_ACCESS_TYPE)
-
-
-def load_template(path):
-    return tempita.HTMLTemplate(file(os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            'templates',
-            path)).read())
+from utils import random_sleep, load_template
+from dropbox_utils import get_session
 
 
 class AuthHandler(webapp2.RequestHandler):
