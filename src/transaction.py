@@ -38,7 +38,7 @@ class SyncTransaction(object):
                 file_info.rev = rev
                 file_info.put()
             elif file_info.netprint_id is None:
-                # waiting for id assiging.
+                # waiting for id assigning.
                 return
             else:
                 # delete entry from datastore and dropbox otherwise.
