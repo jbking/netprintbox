@@ -1,7 +1,7 @@
 # -*- encoding: utf8 -*-
 import os
 
-from unittest2 import TestCase
+from unittest import TestCase
 from nose import SkipTest
 from nose.plugins.attrib import attr
 

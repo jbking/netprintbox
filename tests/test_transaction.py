@@ -1,5 +1,5 @@
 from StringIO import StringIO
-from unittest2 import TestCase
+from unittest import TestCase
 from nose.plugins.attrib import attr
 
 from test_utils import create_user

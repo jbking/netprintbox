@@ -1,5 +1,5 @@
 import re
-from unittest2 import TestCase
+from unittest import TestCase
 from StringIO import StringIO
 from nose.plugins.attrib import attr
 from minimock import mock, Mock, restore
