@@ -103,6 +103,7 @@ class QueueWorker(webapp2.RequestHandler):
             else:
                 item_dict['managed'] = False
             item_list.append(item_dict)
+        # XXX don't make report when no changes.
         template = load_template('report.html')
         put_file(dropbox_client, settings.REPORT_PATH,
                  StringIO(template.substitute(item_list=item_list)))
