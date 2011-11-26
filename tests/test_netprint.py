@@ -45,7 +45,7 @@ class ClientTest(TestCase):
 
         class browser(object):
             @staticmethod
-            def open(url):
+            def request(url, **kwargs):
                 raise URLError("Login Failed")
 
         client = self._getOUT(browser)
