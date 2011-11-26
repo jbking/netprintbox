@@ -15,6 +15,7 @@ class SyncTransaction(object):
     def _sync_transaction(self, dropbox_client, netprint_client,
                                 dropbox_item):
         path = dropbox_item['path']
+        size = dropbox_item['bytes']
         rev = dropbox_item['rev']
 
         # excludes system generating files at all.
@@ -28,6 +29,7 @@ class SyncTransaction(object):
             netprint_name = normalize_name(path)
             file_info = data.DropboxFileInfo(parent=self.dropbox_user,
                                              path=path,
+                                             size=size,
                                              rev=rev,
                                              netprint_name=netprint_name)
             file_info.put()
