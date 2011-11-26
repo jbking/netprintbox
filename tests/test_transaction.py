@@ -31,7 +31,9 @@ class SyncTransactionTest(TestCase):
         class dropbox_client(object):
             @staticmethod
             def get_file(*args):
-                return StringIO('test')
+                f = StringIO('test')
+                f.length = len('test')
+                return f
 
         put_commands = []
 
@@ -63,7 +65,9 @@ class SyncTransactionTest(TestCase):
         class dropbox_client(object):
             @staticmethod
             def get_file(*args):
-                return StringIO('test')
+                f = StringIO('test')
+                f.length = len('test')
+                return f
 
         class netprint_client(object):
             @staticmethod
@@ -90,7 +94,9 @@ class SyncTransactionTest(TestCase):
         class dropbox_client(object):
             @staticmethod
             def get_file(*args):
-                return StringIO('test')
+                f = StringIO('test')
+                f.length = len('test')
+                return f
 
         put_commands = []
 
@@ -241,7 +247,9 @@ class SyncTransactionTest(TestCase):
         class dropbox_client(object):
             @staticmethod
             def get_file(path):
-                return StringIO('test')
+                f = StringIO('test')
+                f.length = len('test')
+                return f
 
         class NetprintError(Exception):
             pass
