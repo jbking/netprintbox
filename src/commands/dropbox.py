@@ -47,6 +47,9 @@ def delete_file(client, path):
 def load_netprint_account_info(client, path=settings.ACCOUNT_INFO_PATH):
     config = ConfigParser()
     config.readfp(obtain_file(client, path))
-    return (config.get('netprint', 'username'),
-            config.get('netprint', 'password'))
-
+    username = config.get('netprint', 'username')
+    password = config.get('netprint', 'password')
+    if username.strip() and password.strip():
+        return (username, password)
+    else:
+        raise ValueError

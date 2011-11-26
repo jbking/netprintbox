@@ -1,0 +1,14 @@
+<html>
+    <head>
+        <title>step1:ネットプリントユーザ情報の登録</title>
+    </head>
+    <body>
+        {{if error}}
+        <p>ネットプリントユーザ情報が読み取れませんでした。</p>
+        {{else}}
+        <p>アプリケーションのディレクトリにテキストファイルを配置しました。</p>
+        {{endif}}
+        <p>ネットプリントのユーザ情報を入力してリンクをクリック。</p>
+        <p><a href="/guide/setup?key={{key}}">&gt;&gt;次へ</a></p>
+    </body>
+</html>

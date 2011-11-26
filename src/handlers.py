@@ -1,14 +1,18 @@
 # -*- coding:utf8 -*-
 import logging
+import os
+from StringIO import StringIO
 
+import tempita
 from google.appengine.api import taskqueue
+from webob import exc
 import webapp2
 import dropbox
 import httplib2
 
 import data
 import netprint
-from commands.dropbox import ls, load_netprint_account_info
+from commands.dropbox import ls, load_netprint_account_info, put_file
 from commands.netprintbox import sync_dropbox_netprint
 import settings
 from transaction import SyncTransaction
@@ -23,6 +27,13 @@ def get_session():
     return dropbox.session.DropboxSession(settings.DROPBOX_APP_KEY,
                                           settings.DROPBOX_APP_SECRET,
                                           settings.DROPBOX_ACCESS_TYPE)
+
+
+def load_template(path):
+    return tempita.HTMLTemplate(file(os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            'templates',
+            path)).read())
 
 
 class AuthHandler(webapp2.RequestHandler):
@@ -98,13 +109,21 @@ class QueueWorker(webapp2.RequestHandler):
         sync_dropbox_netprint(dropbox_client, netprint_client,
                               transaction.sync)
 
+        item_list = []
         for item in netprint_client.list():
+            item_dict = item._asdict()
             file_info = data.DropboxFileInfo.all().ancestor(user)\
                     .filter('netprint_name = ', item.name).get()
             if file_info:
                 file_info.netprint_id = item.id
                 file_info.put()
-            # XXX generate report
+                item_dict['managed'] = True
+            else:
+                item_dict['managed'] = False
+            item_list.append(item_dict)
+        template = load_template('report.html')
+        put_file(dropbox_client, settings.REPORT_PATH,
+                 StringIO(template.substitute(item_list=item_list)))
 
 
 class SetupGuide(webapp2.RequestHandler):
@@ -112,8 +131,7 @@ class SetupGuide(webapp2.RequestHandler):
         key = self.request.GET['key']
         q = data.DropboxUser.all().filter('access_key = ', key)
         if q.count() != 1:
-            self.ignore()
-            return
+            raise exc.HTTPUnauthorized
 
         user = q.get()
 
@@ -121,28 +139,37 @@ class SetupGuide(webapp2.RequestHandler):
         session.set_token(user.access_key, user.access_secret)
         client = dropbox.client.DropboxClient(session)
 
+        create_account_info = False
         try:
-            ls(client, settings.ACCOUNT_INFO_PATH)
+            info = ls(client, settings.ACCOUNT_INFO_PATH)
+            create_account_info = info.get('is_deleted', False)
         except dropbox.rest.ErrorResponse:
-            self.step1()
+            create_account_info = True
+        if create_account_info:
+            put_file(client, settings.ACCOUNT_INFO_PATH, StringIO(""
+"""[netprint]
+username=
+password=
+"""))
+            self.step1(key)
             return
 
         try:
             load_netprint_account_info(client)
-        except dropbox.rest.ErrorResponse:
-            self.step1(error=True)
+        except (dropbox.rest.ErrorResponse, ValueError):
+            self.step1(key, error=True)
         else:
+            user = q.get()
+            taskqueue.add(url='/task/check', params={'key': user.key})
             self.step2()
 
-    def ignore(self):
-        self.response.status = 400
-
-    def step1(self, error=True):
+    def step1(self, key, error=False):
         """ no account info """
         logging.info("SETP1 with error: %s", error)
-        # XXX put account.ini template if not exists
-        self.response.write('step1')
+        template = load_template('step1.html')
+        self.response.write(template.substitute(key=key, error=error))
 
     def step2(self, error=True):
         """ account info is correct, but not synced yet """
-        self.response.write('step2')
+        template = load_template('step2.html')
+        self.response.write(template.substitute(error=error))

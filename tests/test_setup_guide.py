@@ -20,10 +20,13 @@ class SetupGuideTest(TestCase):
         import dropbox.client
         import commands.dropbox
         import commands.netprintbox
+        from google.appengine.api import taskqueue
         mock('dropbox.session.DropboxSession')
         mock('dropbox.client.DropboxClient')
         mock('commands.dropbox.ls')
         mock('commands.dropbox.load_netprint_account_info')
+        mock('taskqueue.add')
+
         dropbox.session.DropboxSession.mock_returns = Mock('DropboxSession')
         dropbox.client.DropboxClient.mock_returns = Mock('DropboxClient')
 
@@ -39,6 +42,8 @@ class SetupGuideTest(TestCase):
                 if self.state == 0:
                     self.state += 1
                     raise dropbox.rest.ErrorResponse(res)
+                else:
+                    return {}
 
         class m2(object):
             def __init__(self):
@@ -51,6 +56,8 @@ class SetupGuideTest(TestCase):
 
         commands.dropbox.ls.mock_returns_func = m1()
         commands.dropbox.load_netprint_account_info = m2()
+
+        taskqueue.add.mock_returns = Mock('taskqueue.add')
 
     def tearDown(self):
         self.testbed.deactivate()
@@ -65,7 +72,8 @@ class SetupGuideTest(TestCase):
         app = self._getAUT()
 
         response = app.get_response('/guide/setup?key=key')
-        self.assertEqual(response.status_int, 400)
+        self.assertEqual(response.status_int, 401,
+                         "Unknown user can't into setup.")
 
         user = create_user()
         response = app.get_response('/guide/setup?key=%s' % user.access_key)
