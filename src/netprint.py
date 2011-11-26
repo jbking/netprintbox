@@ -79,7 +79,8 @@ class Reload(Exception):
 
 class UnexpectedContent(ValueError):
     """
-    If raising this exception, first, please login again. Because the session key of current session might be expired.
+    If raising this exception, first, please login again.
+    Because the session key of current session might be expired.
     Otherwise the content of the target site may be changed.
     """
 ###############################################
