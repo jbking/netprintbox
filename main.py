@@ -2,8 +2,6 @@ import sys
 sys.path.insert(0, 'bundle')
 sys.path.insert(0, 'src')
 
-import logging
-logging.getLogger().setLevel(logging.DEBUG)
 import webapp2
 import handlers
 

@@ -144,9 +144,6 @@ class SyncTransaction(object):
 
 class QueueWorker(webapp2.RequestHandler):
     def post(self):
-        if settings.DEBUG:
-            logging.getLogger().setLevel(logging.DEBUG)
-
         key = self.request.get('key')
 
         random_sleep()
