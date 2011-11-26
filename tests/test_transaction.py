@@ -128,6 +128,7 @@ class SyncTransactionTest(TestCase):
         transaction = self._getOUT(user)
 
         deleted = []
+
         class dropbox_client(object):
             @staticmethod
             def file_delete(path):
