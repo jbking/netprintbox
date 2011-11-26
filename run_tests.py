@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 import sys
 from nose.core import run_exit
