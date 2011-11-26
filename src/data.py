@@ -25,16 +25,16 @@ class OAuthRequestToken(object):
 
     @staticmethod
     def get(key):
-        logging.debug("Getting token by key: %s" % key)
+        logging.debug(u"Getting token by key: %s", key)
         return OAuthToken.from_string(memcache.get(key))
 
     def put(self):
         if self.key is None or self.token is None:
             raise ValueError
-        logging.debug("Saving token: %s" % self.token)
+        logging.debug(u"Saving token: %s", self.token)
         memcache.set(self.key, str(self.token))
 
     @staticmethod
     def delete(key):
-        logging.debug("Deleting token by key: %s" % key)
+        logging.debug(u"Deleting token by key: %s", key)
         memcache.delete(key)

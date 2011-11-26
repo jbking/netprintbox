@@ -1,3 +1,4 @@
+# -*- coding:utf8 -*-
 import logging
 
 from google.appengine.api import taskqueue
@@ -169,7 +170,6 @@ class QueueWorker(webapp2.RequestHandler):
                 file_info.netprint_id = item.id
                 file_info.put()
             # XXX generate report
-            logging.debug(item._asdict())
 
 
 class SetupGuide(webapp2.RequestHandler):

@@ -7,6 +7,7 @@ from dropbox_utils import traverse
 
 
 def ls(client, path):
+    logging.debug(u"Listing metadata of: %r", path)
     return client.metadata(path)
 
 
@@ -22,7 +23,7 @@ def ls_rec(client, path):
 
 
 def obtain_file(client, path):
-    logging.debug("Obtaining file: %s", path)
+    logging.debug(u"Obtaining file: %r", path)
     res = client.get_file(path)
     file_obj = StringIO(res.read())
     file_obj.name = path
@@ -30,12 +31,12 @@ def obtain_file(client, path):
 
 
 def put_file(client, path, file_obj, overwrite=True):
-    logging.debug("Putting file: %s", path)
+    logging.debug(u"Putting file: %r", path)
     return client.put_file(path, file_obj, overwrite=overwrite)
 
 
 def delete_file(client, path):
-    logging.debug("Deleting file: %s", path)
+    logging.debug(u"Deleting file: %r", path)
     return client.file_delete(path)
 
 
