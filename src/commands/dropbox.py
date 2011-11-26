@@ -3,10 +3,11 @@ from ConfigParser import ConfigParser
 from StringIO import StringIO
 
 import settings
-from dropbox_utils import traverse
+from dropbox_utils import traverse, ensure_binary_string
 
 
 def ls(client, path):
+    path = ensure_binary_string(path)
     logging.debug(u"Listing metadata of: %r", path)
     return client.metadata(path)
 
@@ -23,6 +24,7 @@ def ls_rec(client, path):
 
 
 def obtain_file(client, path):
+    path = ensure_binary_string(path)
     logging.debug(u"Obtaining file: %r", path)
     res = client.get_file(path)
     file_obj = StringIO(res.read())
@@ -31,11 +33,13 @@ def obtain_file(client, path):
 
 
 def put_file(client, path, file_obj, overwrite=True):
+    path = ensure_binary_string(path)
     logging.debug(u"Putting file: %r", path)
     return client.put_file(path, file_obj, overwrite=overwrite)
 
 
 def delete_file(client, path):
+    path = ensure_binary_string(path)
     logging.debug(u"Deleting file: %r", path)
     return client.file_delete(path)
 

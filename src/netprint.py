@@ -233,12 +233,12 @@ class Client(object):
                         raise Reload
                 except IndexError:
                     raise Reload
-                item_list.append(Item(column_list[2].string,
-                                      column_list[1].string,
-                                      column_list[3].string,
-                                      column_list[4].string,
+                item_list.append(Item(unicode(column_list[2].string),
+                                      unicode(column_list[1].string),
+                                      unicode(column_list[3].string),
+                                      unicode(column_list[4].string),
                                       int(column_list[5].string),
-                                      column_list[6].string,
+                                      unicode(column_list[6].string),
                                      ))
             return item_list
         except Reload:
