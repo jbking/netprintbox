@@ -55,3 +55,31 @@ class ObtainLimitTest(TestCase):
         self.assertRaises(OverLimit, command,
                           dropbox_client, netprintbox_client,
                           {'path': 'dummy'}, None)
+
+    @attr('unit', 'light')
+    def test_under_limit_for_jpeg(self):
+        command = self._getOUT()
+        DATA = ' ' * (4 * 1024 * 1024)
+
+        class dropbox_client(object):
+            @staticmethod
+            def get_file(path):
+                f = StringIO(DATA)
+                f.length = len(DATA)
+                return f
+
+        result = []
+
+        class netprintbox_client(object):
+            @staticmethod
+            def send(file_obj):
+                result.append(file_obj)
+
+        command(dropbox_client, netprintbox_client,
+                {'path': '/under_limit.jpg'}, None)
+
+        self.assertEqual(len(result), 1)
+        f = result[0]
+        f.seek(0)
+        self.assertEqual(f.name, '/under_limit.jpg')
+        self.assertEqual(f.read(), DATA)
