@@ -1,4 +1,4 @@
-import data
+from netprintbox import data
 
 
 def create_user(**kwargs):

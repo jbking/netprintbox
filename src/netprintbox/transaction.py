@@ -26,9 +26,7 @@ class SyncTransaction(object):
             raise TransactionError("There is generated file %s in netprint"\
                                    % netprint_item['name'])
 
-        query = data.DropboxFileInfo.all()\
-                    .ancestor(self.dropbox_user)\
-                    .filter('path = ', path)
+        query = self.dropbox_user.having_files().filter('path = ', path)
         if query.count() == 0:
             file_info = data.DropboxFileInfo(parent=self.dropbox_user,
                                              path=path,
@@ -63,9 +61,7 @@ class SyncTransaction(object):
         if path in (settings.ACCOUNT_INFO_PATH, settings.REPORT_PATH):
             return
 
-        query = data.DropboxFileInfo.all()\
-                    .ancestor(self.dropbox_user)\
-                    .filter('path = ', path)
+        query = self.dropbox_user.having_files().filter('path = ', path)
         if query.count() == 0:
             netprint_name = normalize_name(path)
             file_info = data.DropboxFileInfo(parent=self.dropbox_user,
@@ -99,9 +95,8 @@ class SyncTransaction(object):
         Delete file and info.
         """
         netprint_id = netprint_item['id']
-        query = data.DropboxFileInfo.all()\
-                    .ancestor(self.dropbox_user)\
-                    .filter('netprint_id = ', netprint_id)
+        query = self.dropbox_user.having_files()\
+                .filter('netprint_id = ', netprint_id)
 
         if query.count() > 0:
             for file_info in query:
