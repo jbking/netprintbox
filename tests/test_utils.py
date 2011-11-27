@@ -1,6 +1,7 @@
-def create_user(**kwargs):
-    import data
+import data
 
+
+def create_user(**kwargs):
     default = {
             'uid': 'uid',
             'email': 'email',
@@ -13,3 +14,18 @@ def create_user(**kwargs):
     user = data.DropboxUser(**params)
     user.put()
     return user
+
+
+def create_file_info(user, **kwargs):
+    default = {
+            'path': '/path',
+            'size': 1,
+            'rev': 'rev',
+            'netprint_name': 'path',
+        }
+    params = dict(default)
+    params['parent'] = user
+    params.update(kwargs)
+    file_info = data.DropboxFileInfo(**params)
+    file_info.put()
+    return file_info

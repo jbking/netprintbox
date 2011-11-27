@@ -1,0 +1,2 @@
+class OverLimit(ValueError):
+    pass

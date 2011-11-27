@@ -1,7 +1,7 @@
 import logging
 import os
 
-from commands import dropbox
+import dropbox_commands as dropbox
 from dropbox_utils import traverse
 from netprint_utils import normalize_name
 

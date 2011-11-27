@@ -3,11 +3,8 @@ from ConfigParser import ConfigParser
 from StringIO import StringIO
 
 import settings
+from netprintbox.exceptions import OverLimit
 from dropbox_utils import traverse, ensure_binary_string
-
-
-class OverLimit(ValueError):
-    pass
 
 
 def ls(client, path):

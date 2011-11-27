@@ -3,9 +3,9 @@ from google.appengine.ext import db
 import data
 import settings
 from netprint_utils import normalize_name
-from commands.dropbox import delete_file as dropbox_delete_file
-from commands.netprintbox import put_from_dropbox
-from commands.netprint import delete_file as netprint_delete_file
+from dropbox_commands import delete_file as dropbox_delete_file
+from netprintbox_commands import put_from_dropbox
+from netprint_commands import delete_file as netprint_delete_file
 
 
 class SyncTransaction(object):
