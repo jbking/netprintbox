@@ -6,14 +6,55 @@ from netprint_utils import normalize_name
 from dropbox_commands import delete_file as dropbox_delete_file
 from netprintbox_commands import put_from_dropbox
 from netprint_commands import delete_file as netprint_delete_file
+from netprintbox.exceptions import TransactionError
 
 
 class SyncTransaction(object):
     def __init__(self, dropbox_user):
         self.dropbox_user = dropbox_user
 
-    def _sync_transaction(self, dropbox_client, netprint_client,
-                                dropbox_item):
+    def _sync_transaction_from_both(self, dropbox_client, netprint_client,
+                                    dropbox_item, netprint_item):
+        path = dropbox_item['path']
+        size = dropbox_item['bytes']
+        rev = dropbox_item['rev']
+        netprint_id = netprint_item['id']
+        netprint_name = netprint_item['name']
+
+        # excludes system generating files at all.
+        if path in (settings.ACCOUNT_INFO_PATH, settings.REPORT_PATH):
+            raise TransactionError("There is generated file %s in netprint"\
+                                   % netprint_item['name'])
+
+        query = data.DropboxFileInfo.all()\
+                    .ancestor(self.dropbox_user)\
+                    .filter('path = ', path)
+        if query.count() == 0:
+            file_info = data.DropboxFileInfo(parent=self.dropbox_user,
+                                             path=path,
+                                             size=size,
+                                             rev=rev,
+                                             netprint_id=netprint_id,
+                                             netprint_name=netprint_name)
+            file_info.put()
+        elif query.count() == 1:
+            file_info = query.get()
+            if file_info.rev != rev:
+                # upload new one if file is updated.
+                file_info.size = size
+                file_info.rev = rev
+                # this will be re-assign after uploading.
+                file_info.netprint_id = None
+                file_info.put()
+            else:
+                return
+        else:
+            raise TransactionError("Duplicated path? %s" % path)
+        put_from_dropbox(dropbox_client, netprint_client,
+                         dropbox_item, None)
+
+    def _sync_transaction_from_dropbox(self, dropbox_client, netprint_client,
+                                       dropbox_item):
         path = dropbox_item['path']
         size = dropbox_item['bytes']
         rev = dropbox_item['rev']
@@ -37,6 +78,7 @@ class SyncTransaction(object):
             file_info = query.get()
             if file_info.rev != rev:
                 # upload new one if file is updated.
+                file_info.size = size
                 file_info.rev = rev
                 file_info.put()
             elif file_info.netprint_id is None:
@@ -48,7 +90,7 @@ class SyncTransaction(object):
                 dropbox_delete_file(dropbox_client, path)
                 return
         else:
-            raise ValueError("Duplicated path? %s" % path)
+            raise TransactionError("Duplicated path? %s" % path)
         put_from_dropbox(dropbox_client, netprint_client,
                          dropbox_item, None)
 
@@ -73,13 +115,15 @@ class SyncTransaction(object):
                    dropbox_item, netprint_item):
         # detect only situation a file in dropbox but not in netprint.
         if dropbox_item is not None and netprint_item is None:
-            db.run_in_transaction(self._sync_transaction,
+            db.run_in_transaction(self._sync_transaction_from_dropbox,
                                   dropbox_client, netprint_client,
                                   dropbox_item)
 
-        if dropbox_item is None and netprint_item is not None:
+        elif dropbox_item is None and netprint_item is not None:
             db.run_in_transaction(self._delete_transaction,
                                   netprint_client, netprint_item)
 
-        # XXX How about a file exists on netprint,
-        #     but new one is uploaded on dropbox?
+        elif dropbox_item is not None and netprint_item is not None:
+            db.run_in_transaction(self._sync_transaction_from_both,
+                                  dropbox_client, netprint_client,
+                                  dropbox_item, netprint_item)

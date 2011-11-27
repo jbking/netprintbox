@@ -17,7 +17,7 @@ class TransactionTestBase(TestCase):
         self.testbed.deactivate()
 
     def _getOUT(self, dropbox_user):
-        from transaction import SyncTransaction
+        from netprintbox.transaction import SyncTransaction
 
         return SyncTransaction(dropbox_user)
 
