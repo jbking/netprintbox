@@ -369,11 +369,7 @@ class ObtainingLimitTest(TransactionTestBase):
         transaction = self._getOUT(user)
 
         class dropbox_client(object):
-            @staticmethod
-            def get_file(path):
-                f = StringIO(DATA)
-                f.length = len(DATA)
-                return f
+            pass
 
         class netprintbox_client(object):
             pass
