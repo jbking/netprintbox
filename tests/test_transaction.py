@@ -197,6 +197,8 @@ class SyncFeatureTest(TransactionTestBase):
 
     @attr('unit', 'light')
     def test_netprint_has_original_file(self):
+        from netprintbox.data import FileState
+
         user = create_user()
         transaction = self._getOUT(user)
 
@@ -211,8 +213,8 @@ class SyncFeatureTest(TransactionTestBase):
         transaction.sync(dropbox_client, netprint_client,
                          None, dict(id='original_id', name='same_name'))
 
-        q = user.own_files()
-        self.assertEqual(q.count(), 0)
+        q = user.own_files().filter('state = ', FileState.UNCONTROLLED)
+        self.assertEqual(q.count(), 1)
 
     @attr('unit', 'light')
     def test_dropbox_cause_an_error(self):

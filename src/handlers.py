@@ -91,6 +91,7 @@ class QueueWorker(webapp2.RequestHandler):
         sync_dropbox_netprint(dropbox_client, netprint_client,
                               transaction.sync)
 
+        # XXX use FileState
         item_list = []
         for item in netprint_client.list():
             item_dict = item._asdict()

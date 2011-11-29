@@ -1,6 +1,6 @@
 from google.appengine.ext import db
 
-import data
+from netprintbox.data import FileState, DropboxFileInfo
 import settings
 from netprint_utils import normalize_name
 from dropbox_commands import delete_file as dropbox_delete_file
@@ -39,12 +39,13 @@ class SyncTransaction(object):
         if query.count() == 0:
             self._capacity_check(size)
             self.available_space -= size
-            file_info = data.DropboxFileInfo(parent=self.dropbox_user,
-                                             path=path,
-                                             size=size,
-                                             rev=rev,
-                                             netprint_id=netprint_id,
-                                             netprint_name=netprint_name)
+            file_info = DropboxFileInfo(parent=self.dropbox_user,
+                                        path=path,
+                                        rev=rev,
+                                        size=size,
+                                        state=FileState.LATEST,
+                                        netprint_id=netprint_id,
+                                        netprint_name=netprint_name)
             file_info.put()
         elif query.count() == 1:
             file_info = query.get()
@@ -52,11 +53,14 @@ class SyncTransaction(object):
                 self._capacity_check(size - file_info.size)
                 self.available_space -= size - file_info.size
                 # upload new one if file is updated.
-                file_info.size = size
                 file_info.rev = rev
+                file_info.size = size
+                file_info.state = FileState.NEED_NETPRINT_ID
                 # this will be re-assign after uploading.
                 file_info.netprint_id = None
                 file_info.put()
+                # XXX delete the file on netprint first
+                #     to avoid duplicated name error.
             else:
                 return
         else:
@@ -79,11 +83,12 @@ class SyncTransaction(object):
             netprint_name = normalize_name(path)
             self._capacity_check(size)
             self.available_space -= size
-            file_info = data.DropboxFileInfo(parent=self.dropbox_user,
-                                             path=path,
-                                             size=size,
-                                             rev=rev,
-                                             netprint_name=netprint_name)
+            file_info = DropboxFileInfo(parent=self.dropbox_user,
+                                        path=path,
+                                        rev=rev,
+                                        size=size,
+                                        state=FileState.NEED_NETPRINT_ID,
+                                        netprint_name=netprint_name)
             file_info.put()
         elif query.count() == 1:
             file_info = query.get()
@@ -91,8 +96,9 @@ class SyncTransaction(object):
                 self._capacity_check(size - file_info.size)
                 self.available_space -= size - file_info.size
                 # upload new one if file is updated.
-                file_info.size = size
                 file_info.rev = rev
+                file_info.size = size
+                file_info.state = FileState.NEED_NETPRINT_ID
                 file_info.put()
             elif file_info.netprint_id is None:
                 # waiting for id assigning.
@@ -112,6 +118,7 @@ class SyncTransaction(object):
         Delete file and info.
         """
         netprint_id = netprint_item['id']
+        netprint_name = netprint_item['name']
         query = self.dropbox_user.own_files()\
                 .filter('netprint_id = ', netprint_id)
 
@@ -121,8 +128,10 @@ class SyncTransaction(object):
             self.available_space += file_info.size
             netprint_delete_file(netprint_client, netprint_id)
         else:
-            # unmanaged file
-            pass
+            DropboxFileInfo(parent=self.dropbox_user,
+                            state=FileState.UNCONTROLLED,
+                            ntprint_id=netprint_id,
+                            netprint_name=netprint_name).put()
 
     def sync(self, dropbox_client, netprint_client,
                    dropbox_item, netprint_item):

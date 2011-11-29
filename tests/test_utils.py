@@ -19,8 +19,9 @@ def create_user(**kwargs):
 def create_file_info(user, **kwargs):
     default = {
             'path': '/path',
-            'size': 1,
             'rev': 'rev',
+            'size': 1,
+            'state': data.FileState.NEED_NETPRINT_ID,
             'netprint_name': 'path',
         }
     params = dict(default)
