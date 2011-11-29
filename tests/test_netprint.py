@@ -1,7 +1,7 @@
 # -*- encoding: utf8 -*-
 import os
 
-from unittest2 import TestCase
+from unittest import TestCase
 from nose import SkipTest
 from nose.plugins.attrib import attr
 
@@ -45,7 +45,7 @@ class ClientTest(TestCase):
 
         class browser(object):
             @staticmethod
-            def open(url):
+            def request(url, **kwargs):
                 raise URLError("Login Failed")
 
         client = self._getOUT(browser)
@@ -159,91 +159,3 @@ class FunctionalClientTest(TestCase):
         client.delete(item)
         client.reload()
         self.assertNotIn(u'数独01', [item.name for item in client.list()])
-
-"""
-
-def test_send(context):
-    mocker = context.mocker()
-
-    client = context.get_netprint_client()
-    client.browser = mocker.proxy(client.browser)
-    client.session_key = 'a_valid_session'
-
-    with mocker.order():
-        client.browser.open(Client.manage_url + '?s=a_valid_session')
-        mocker.call(with_loading_fixture('data/main.html'), with_object=True)
-        mock_link = mocker.mock()
-        client.browser.links(text_regex=unicode('^新規ファイル', 'utf8').encode('sjis'))
-        mocker.result([mock_link])
-        client.browser.follow_link(mock_link)
-        mocker.call(with_loading_fixture('data/entry.html'), with_object=True)
-
-    client.browser.response()
-    mocker.passthrough()
-    client.browser.forms()
-    mocker.passthrough()
-    client.browser.select_form(nr=1)
-    mocker.passthrough()
-    # f = mocker.mock(StringIO)
-    # client.browser.form.add_file(f, filename=file_name)
-    client.browser['papersize'] = [str(PaperSize.A4)]
-    mocker.passthrough()
-    client.browser['color'] = [str(Color.choice_at_printing)]
-    mocker.passthrough()
-    client.browser['number'] = [str(ReservationNumber.Num)]
-    mocker.passthrough()
-    client.browser['secretcodesw'] = [str(NeedSecret.Yes)]
-    mocker.passthrough()
-    client.browser['secretcode'] = 'secret_code_XXX'
-    mocker.passthrough()
-    client.browser['magnification'] = str(NeedMargin.No)
-    mocker.passthrough()
-    client.browser['mailsw'] = [str(NeedNotification.No)]
-    mocker.passthrough()
-    client.browser['mailaddr'] = ''
-    mocker.passthrough()
-    client.browser.submit()
-    mocker.replay()
-
-    client.send(file('/dev/null'), file_name='test01.jpg',
-                reserversion_number=ReservationNumber.Num,
-                need_secret=NeedSecret.Yes, secret_code='secret_code_XXX')
-
-    mocker.verify()
-    mocker.restore()
-
-def test_delete(context):
-    mocker = context.mocker()
-
-    client = context.get_netprint_client()
-    client.browser = mocker.proxy(client.browser)
-    client.session_key = 'a_valid_session'
-
-    with mocker.order():
-        client.browser.open(Client.manage_url + '?s=a_valid_session')
-        mocker.call(with_loading_fixture('data/main.html'), with_object=True)
-        client.browser.response()
-        mocker.passthrough()
-        client.browser.set_response(ANY)
-        mocker.passthrough()
-        client.browser.select_form(nr=2)
-        mocker.passthrough()
-        client.browser['fc'] = set(['QNA7HNEE'])
-        mocker.passthrough()
-        client.browser.submit(name='delete')
-        mocker.call(with_loading_fixture('data/confirm_delete.html'), with_object=True)
-
-    client.browser.response()
-    mocker.passthrough()
-    client.browser.forms()
-    mocker.passthrough()
-    client.browser.select_form(nr=0)
-    mocker.passthrough()
-    client.browser.submit()
-    mocker.replay()
-
-    client.delete('QNA7HNEE')
-
-    mocker.verify()
-    mocker.restore()
-"""

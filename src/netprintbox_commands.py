@@ -1,5 +1,7 @@
 import logging
-from commands import dropbox
+import os
+
+import dropbox_commands as dropbox
 from dropbox_utils import traverse
 from netprint_utils import normalize_name
 
@@ -54,8 +56,14 @@ def sync_dropbox_netprint(dropbox_client, netprint_client, callback):
 def put_from_dropbox(dropbox_client, netprint_client,
                      dropbox_item, netprint_item):
     if dropbox_item is not None and netprint_item is None:
-        logging.debug(u"Putting %r into netprint", dropbox_item['path'])
-        file_obj = dropbox.obtain_file(dropbox_client, dropbox_item['path'])
+        path = dropbox_item['path']
+        if os.path.splitext(path)[-1] in ('.jpg', '.jpeg'):
+            limit = 4 * 1024 * 1024
+        else:
+            limit = 2 * 1024 * 1024
+        logging.debug(u"Putting %r into netprint", path)
+        file_obj = dropbox.obtain_file(dropbox_client, path,
+                                       limit=limit)
         netprint_client.send(file_obj)
 
 

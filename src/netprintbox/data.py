@@ -11,10 +11,14 @@ class DropboxUser(db.Model):
     access_key = db.StringProperty(required=True)
     access_secret = db.StringProperty(required=True, indexed=False)
 
+    def own_files(self):
+        return DropboxFileInfo.all().ancestor(self)
+
 
 class DropboxFileInfo(db.Model):
     path = db.StringProperty(required=True)
     rev = db.StringProperty(required=True, indexed=False)
+    size = db.IntegerProperty(required=True, indexed=False)
     netprint_id = db.StringProperty()
     netprint_name = db.StringProperty(required=True)
 

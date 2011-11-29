@@ -13,6 +13,7 @@ Box
 - has some files.
 - has only file format support which are supported by netprint.
 - has 10MB limit by netprint.
+- has 2MB limit for a file, but 4MB for jpg. 
 - recognize files in entire directory tree for sharing. (UI)
   - how do we put them into flat place of netprint? hash? joined with separator?
 - properties.

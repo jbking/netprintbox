@@ -8,12 +8,12 @@ import webapp2
 import dropbox
 import httplib2
 
-import data
 import netprint
-from commands.dropbox import ls, load_netprint_account_info, put_file
-from commands.netprintbox import sync_dropbox_netprint
+from netprintbox import data
+from netprintbox.transaction import SyncTransaction
+from dropbox_commands import ls, load_netprint_account_info, put_file
+from netprintbox_commands import sync_dropbox_netprint
 import settings
-from transaction import SyncTransaction
 from utils import random_sleep, load_template
 from dropbox_utils import get_session
 
@@ -94,8 +94,8 @@ class QueueWorker(webapp2.RequestHandler):
         item_list = []
         for item in netprint_client.list():
             item_dict = item._asdict()
-            file_info = data.DropboxFileInfo.all().ancestor(user)\
-                    .filter('netprint_name = ', item.name).get()
+            file_info = user.own_files()\
+                        .filter('netprint_name = ', item.name).get()
             if file_info:
                 file_info.netprint_id = item.id
                 file_info.put()
@@ -103,6 +103,7 @@ class QueueWorker(webapp2.RequestHandler):
             else:
                 item_dict['managed'] = False
             item_list.append(item_dict)
+        # XXX don't make report when no changes.
         template = load_template('report.html')
         put_file(dropbox_client, settings.REPORT_PATH,
                  StringIO(template.substitute(item_list=item_list)))

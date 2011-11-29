@@ -1,5 +1,5 @@
 import re
-from unittest2 import TestCase
+from unittest import TestCase
 from StringIO import StringIO
 from nose.plugins.attrib import attr
 from minimock import mock, Mock, restore
@@ -18,13 +18,12 @@ class SetupGuideTest(TestCase):
         # mockout
         import dropbox.session
         import dropbox.client
-        import commands.dropbox
-        import commands.netprintbox
+        import dropbox_commands
         from google.appengine.api import taskqueue
         mock('dropbox.session.DropboxSession')
         mock('dropbox.client.DropboxClient')
-        mock('commands.dropbox.ls')
-        mock('commands.dropbox.load_netprint_account_info')
+        mock('dropbox_commands.ls')
+        mock('dropbox_commands.load_netprint_account_info')
         mock('taskqueue.add')
 
         dropbox.session.DropboxSession.mock_returns = Mock('DropboxSession')
@@ -54,8 +53,8 @@ class SetupGuideTest(TestCase):
                     self.state += 1
                     raise dropbox.rest.ErrorResponse(res)
 
-        commands.dropbox.ls.mock_returns_func = m1()
-        commands.dropbox.load_netprint_account_info = m2()
+        dropbox_commands.ls.mock_returns_func = m1()
+        dropbox_commands.load_netprint_account_info = m2()
 
         taskqueue.add.mock_returns = Mock('taskqueue.add')
 
