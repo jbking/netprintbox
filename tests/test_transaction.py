@@ -348,16 +348,38 @@ class ObtainingLimitTest(TransactionTestBase):
                 f.length = len(DATA)
                 return f
 
-        sent = []
-
         class netprintbox_client(object):
-            @staticmethod
-            def send(file_obj):
-                sent.append(file_obj)
+            pass
 
         self.assertRaises(OverLimit, transaction.sync,
                           dropbox_client, netprintbox_client,
                           dict(path='/over_limit.dat', bytes=len(DATA),
                                rev='rev'),
                           None)
-        self.assertEqual(len(sent), 0)
+
+    @attr('unit', 'light')
+    def test_over_limit_for_account(self):
+        from netprintbox.exceptions import OverLimit
+
+        DATA = 'a'
+
+        user = create_user()
+        for _ in range(5):
+            create_file_info(user, size=(2 * 1024 * 1024))
+        transaction = self._getOUT(user)
+
+        class dropbox_client(object):
+            @staticmethod
+            def get_file(path):
+                f = StringIO(DATA)
+                f.length = len(DATA)
+                return f
+
+        class netprintbox_client(object):
+            pass
+
+        self.assertRaises(OverLimit, transaction.sync,
+                          dropbox_client, netprintbox_client,
+                          dict(path='/over_limit.dat', bytes=len(DATA),
+                               rev='rev'),
+                          None)
