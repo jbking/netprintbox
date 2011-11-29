@@ -94,7 +94,7 @@ class QueueWorker(webapp2.RequestHandler):
         item_list = []
         for item in netprint_client.list():
             item_dict = item._asdict()
-            file_info = user.having_files()\
+            file_info = user.own_files()\
                         .filter('netprint_name = ', item.name).get()
             if file_info:
                 file_info.netprint_id = item.id

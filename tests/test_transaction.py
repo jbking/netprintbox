@@ -45,7 +45,7 @@ class SyncFeatureTest(TransactionTestBase):
         transaction.sync(dropbox_client, netprint_client,
                          dict(path='path', bytes=0, rev='rev'), None)
 
-        q = user.having_files()
+        q = user.own_files()
         self.assertEqual(q.count(), 1)
         file_info = q.get()
         self.assertEqual(file_info.path, 'path')
@@ -74,13 +74,13 @@ class SyncFeatureTest(TransactionTestBase):
 
         transaction1.sync(dropbox_client, netprint_client,
                           dict(path='path', bytes=0, rev='rev'), None)
-        self.assertEqual(user1.having_files().count(), 1)
-        self.assertEqual(user2.having_files().count(), 0)
+        self.assertEqual(user1.own_files().count(), 1)
+        self.assertEqual(user2.own_files().count(), 0)
 
         transaction2.sync(dropbox_client, netprint_client,
                           dict(path='path', bytes=0, rev='rev'), None)
-        self.assertEqual(user1.having_files().count(), 1)
-        self.assertEqual(user2.having_files().count(), 1)
+        self.assertEqual(user1.own_files().count(), 1)
+        self.assertEqual(user2.own_files().count(), 1)
 
     @attr('unit', 'light')
     def test_modified_file_netprint_has_old_one(self):
@@ -108,7 +108,7 @@ class SyncFeatureTest(TransactionTestBase):
                          dict(id=file_info.netprint_id,
                               name=file_info.netprint_name))
 
-        q = user.having_files()
+        q = user.own_files()
         self.assertEqual(q.count(), 1)
         latest_file_info = q.get()
         self.assertEqual(latest_file_info.path, file_info.path)
@@ -141,7 +141,7 @@ class SyncFeatureTest(TransactionTestBase):
         transaction.sync(dropbox_client, netprint_client,
                          dict(path=file_info.path, bytes=4, rev='rev'), None)
 
-        q = user.having_files()
+        q = user.own_files()
         self.assertEqual(q.count(), 1)
         latest_file_info = q.get()
         self.assertEqual(latest_file_info.path, file_info.path)
@@ -172,7 +172,7 @@ class SyncFeatureTest(TransactionTestBase):
         transaction.sync(dropbox_client, netprint_client,
                          dict(path=file_info.path, bytes=3, rev='rev'), None)
 
-        q = user.having_files()
+        q = user.own_files()
         self.assertEqual(q.count(), 0)
         self.assertListEqual(deleted, [file_info.path])
 
@@ -192,7 +192,7 @@ class SyncFeatureTest(TransactionTestBase):
         for ignore_path in (settings.ACCOUNT_INFO_PATH, settings.REPORT_PATH):
             transaction.sync(dropbox_client, netprint_client,
                              dict(path=ignore_path, bytes=0, rev='rev'), None)
-        q = user.having_files()
+        q = user.own_files()
         self.assertEqual(q.count(), 0)
 
     @attr('unit', 'light')
@@ -211,7 +211,7 @@ class SyncFeatureTest(TransactionTestBase):
         transaction.sync(dropbox_client, netprint_client,
                          None, dict(id='original_id', name='same_name'))
 
-        q = user.having_files()
+        q = user.own_files()
         self.assertEqual(q.count(), 0)
 
     @attr('unit', 'light')
@@ -236,7 +236,7 @@ class SyncFeatureTest(TransactionTestBase):
                           dropbox_client, netprint_client,
                           dict(path='path', bytes=0, rev='rev'), None)
 
-        q = user.having_files()
+        q = user.own_files()
         self.assertEqual(q.count(), 0)
 
     @attr('unit', 'light')
@@ -265,7 +265,7 @@ class SyncFeatureTest(TransactionTestBase):
                           dropbox_client, netprint_client,
                           dict(path='path', bytes=0, rev='rev'), None)
 
-        q = user.having_files()
+        q = user.own_files()
         self.assertEqual(q.count(), 0)
 
 

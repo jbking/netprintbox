@@ -11,7 +11,7 @@ class DropboxUser(db.Model):
     access_key = db.StringProperty(required=True)
     access_secret = db.StringProperty(required=True, indexed=False)
 
-    def having_files(self):
+    def own_files(self):
         return DropboxFileInfo.all().ancestor(self)
 
 
