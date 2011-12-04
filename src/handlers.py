@@ -14,7 +14,7 @@ from netprintbox.transaction import SyncTransaction
 from dropbox_commands import ls, load_netprint_account_info, put_file
 from netprintbox_commands import sync_dropbox_netprint
 import settings
-from utils import random_sleep, load_template
+from utils import load_template
 from dropbox_utils import get_session
 
 
