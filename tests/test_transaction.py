@@ -1,4 +1,3 @@
-from StringIO import StringIO
 from unittest import TestCase
 from nose.plugins.attrib import attr
 

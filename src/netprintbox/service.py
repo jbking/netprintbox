@@ -48,7 +48,7 @@ class NetprintService(object):
 
 
 class NetprintboxService(object):
-    def __ini__(self, user):
+    def __init__(self, user):
         if isinstance(user, (basestring, Key)):
             user = DropboxUser.get(user)
         self.user = user
@@ -61,7 +61,7 @@ class NetprintboxService(object):
         return self._netprint
 
     @netprint.setter
-    def set_netprint(self, netprint):
+    def netprint(self, netprint):
         self._netprint = netprint
 
     @property
@@ -71,7 +71,7 @@ class NetprintboxService(object):
         return self._dropbox
 
     @dropbox.setter
-    def set_dropbox(self, dropbox):
+    def dropbox(self, dropbox):
         self._dropbox = dropbox
 
     def load_netprint_account_info(self, path=settings.ACCOUNT_INFO_PATH):
@@ -105,9 +105,10 @@ class NetprintboxService(object):
         file_obj = self.dropbox.obtain(path, limit=limit)
         self.netprint.put(file_obj)
 
-    def make_report(self):
+    def _make_report(self):
         controlled_map = dict((file_info.netprint_name, file_info)
-                               for file_info in self.user.own_files())
+                               for file_info in self.user.own_files()
+                               if file_info.state != FileState.UNCONTROLLED)
         waiting_map = dict((file_info.netprint_name, file_info)
                            for file_info in controlled_map.values()
                            if file_info.state == FileState.NEED_NETPRINT_ID)
@@ -122,11 +123,16 @@ class NetprintboxService(object):
                     # Set netprint_id by latest result.
                     file_info = waiting_map[netprint_name]
                     file_info.netprint_id = netprint_id
+                    file_info.state = FileState.LATEST
                     file_info.put()
                 item_dict['controlled'] = True
             else:
-                item_dict['managed'] = False
+                item_dict['controlled'] = False
             item_list.append(item_dict)
+        return item_list
+
+    def make_report(self):
+        item_list = self._make_report
         # XXX don't make report when no changes.
         template = load_template('report.html')
         self.dropbox.put(settings.REPORT_PATH,
@@ -134,7 +140,7 @@ class NetprintboxService(object):
 
 
 class DropboxService(object):
-    def __ini__(self, user):
+    def __init__(self, user):
         if isinstance(user, (basestring, Key)):
             user = DropboxUser.get(user)
         self.user = user

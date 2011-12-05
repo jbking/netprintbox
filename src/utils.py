@@ -44,5 +44,3 @@ def encode_multipart_data(data):
     lines[-1] += "--"
 
     return "\r\n".join(lines), boundary
-
-

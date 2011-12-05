@@ -8,10 +8,10 @@
             <span>{{loop.number}}</span>
             <span>{{item['name']}}</span>
             <span>{{item['id']}}</span>
-            {{if item['managed']}}
-            <span>監視中</span>
+            {{if item['controlled']}}
+            <span>controlled</span>
             {{else}}
-            <span>監視しない</span>
+            <span>uncontrolled</span>
             {{endif}}
         </p>
         {{endfor}}
