@@ -1,3 +1,5 @@
+import os
+
 DROPBOX_APP_KEY = 'YOUR_APP_KEY'
 DROPBOX_APP_SECRET = 'YOUR_APP_SECRET'
 DROPBOX_ACCESS_TYPE = 'app_folder'
@@ -11,7 +13,8 @@ USER_AGENT = ('Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_3; ja-jp) '
 
 SLEEP_WAIT = 120
 
-import os
+TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'templates')
+
 try:
     exec file(os.path.join(os.path.dirname(__file__),
                            'settings_local.py')).read()

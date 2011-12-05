@@ -2,14 +2,14 @@ import sys
 sys.path.insert(0, 'bundle')
 sys.path.insert(0, 'src')
 
+import logging
+
 import webapp2
 import httplib2
 
 import handlers
-import settings
 
-
-if settings.DEBUG:
+if logging.getLogger().level <= logging.DEBUG:
     httplib2.debuglevel = 1
 
 

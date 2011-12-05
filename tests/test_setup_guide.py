@@ -15,19 +15,16 @@ class SetupGuideTest(TestCase):
         self.testbed.activate()
         self.testbed.init_datastore_v3_stub()
 
+        import dropbox.rest
         # mockout
-        import dropbox.session
-        import dropbox.client
-        import dropbox_commands
+        import netprintbox.service
         from google.appengine.api import taskqueue
-        mock('dropbox.session.DropboxSession')
-        mock('dropbox.client.DropboxClient')
-        mock('dropbox_commands.ls')
-        mock('dropbox_commands.load_netprint_account_info')
+        mock('netprintbox.service.NetprintboxService')
         mock('taskqueue.add')
 
-        dropbox.session.DropboxSession.mock_returns = Mock('DropboxSession')
-        dropbox.client.DropboxClient.mock_returns = Mock('DropboxClient')
+        NetprintService = netprintbox.service.NetprintboxService
+        NetprintService.mock_returns = service = Mock('NetprintService')
+        service.dropbox = Mock('DropboxService')
 
         res = StringIO('body')
         res.status = '400'
@@ -37,7 +34,7 @@ class SetupGuideTest(TestCase):
             def __init__(self):
                 self.state = 0
 
-            def __call__(self, client, path):
+            def __call__(self, path):
                 if self.state == 0:
                     self.state += 1
                     raise dropbox.rest.ErrorResponse(res)
@@ -48,13 +45,13 @@ class SetupGuideTest(TestCase):
             def __init__(self):
                 self.state = 0
 
-            def __call__(self, client):
+            def __call__(self):
                 if self.state == 0:
                     self.state += 1
                     raise dropbox.rest.ErrorResponse(res)
 
-        dropbox_commands.ls.mock_returns_func = m1()
-        dropbox_commands.load_netprint_account_info = m2()
+        service.dropbox.list = m1()
+        service.load_netprint_account_info = m2()
 
         taskqueue.add.mock_returns = Mock('taskqueue.add')
 

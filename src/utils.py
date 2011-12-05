@@ -1,10 +1,7 @@
 # -*- encoding: utf8 -*-
-import os
 import random
 import sys
 import mimetypes
-
-import tempita
 
 
 OS_FILESYSTEM_ENCODING = sys.getfilesystemencoding()
@@ -49,8 +46,3 @@ def encode_multipart_data(data):
     return "\r\n".join(lines), boundary
 
 
-def load_template(path):
-    return tempita.HTMLTemplate(file(os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            'templates',
-            path)).read())
