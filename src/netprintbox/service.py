@@ -106,6 +106,8 @@ class NetprintboxService(object):
             raise ValueError
 
     def sync(self):
+        # XXX How we can handle the case that a file is removed on dropbox
+        #     and netprint but the data for the file exists?
         transaction = SyncTransaction(self)
         transaction.sync()
 
