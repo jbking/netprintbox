@@ -18,10 +18,12 @@
 
 import os
 import logging
+import hashlib
 from StringIO import StringIO
 from ConfigParser import ConfigParser
 
 from google.appengine.ext import db
+from google.appengine.api import memcache
 from httplib2 import Http
 from dropbox.client import DropboxClient
 from dropbox.session import DropboxSession
@@ -132,9 +134,8 @@ class NetprintboxService(object):
                            if file_info.state == FileState.NEED_NETPRINT_ID)
 
         def txn():
-            # XXX hook file deleted.
-            need_report = False
             items = {}
+            need_report = False
             for item in self.netprint.list():
                 item_dict = item._asdict()
                 netprint_id = item_dict['id']
@@ -146,21 +147,30 @@ class NetprintboxService(object):
                         file_info.netprint_id = netprint_id
                         file_info.state = FileState.LATEST
                         file_info.put()
-                        need_report = True
                     item_dict['controlled'] = True
                     item_dict['last_modified'] = file_info.last_modified
                 else:
-                    need_report = True
                     item_dict['controlled'] = False
                 items[netprint_name] = item_dict
             for file_info in own_files:
                 netprint_name = file_info.netprint_name
                 if netprint_name not in items:
+                    need_report = True
                     items[netprint_name] = {
                             'name': netprint_name,
                             'id': "ERROR",
                             'controlled': True,
                             }
+
+            if not need_report:
+                md5 = hashlib.new('md5')
+                key = str(self.user.key())
+                for item in self.netprint.list():
+                    md5.update(item.id)
+                digest = md5.hexdigest()
+                need_report = digest != memcache.get(key)
+                if need_report:
+                    memcache.set(key, digest)
             return (need_report, items.values())
         return db.run_in_transaction(txn)
 
