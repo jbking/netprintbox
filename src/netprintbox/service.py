@@ -169,6 +169,9 @@ class NetprintboxService(object):
                 for item in self.netprint.list():
                     md5.update(item.id)
                 digest = md5.hexdigest()
+                logging.debug('Generated digest is %s, and cached is %s',
+                              digest,
+                              memcache.get(key))
                 need_report = digest != memcache.get(key)
                 if need_report:
                     memcache.set(key, digest)
@@ -178,12 +181,16 @@ class NetprintboxService(object):
     def make_report(self):
         (need_report, item_list) = self._make_report()
         if need_report:
-            logging.debug('Making a report for %r', self.user)
+            logging.debug('Making a report for %s(%s)',
+                          self.user.email,
+                          self.user.uid)
             template = load_template('report.html')
             self.dropbox.put(settings.REPORT_PATH,
                      StringIO(template.substitute(item_list=item_list)))
         else:
-            logging.debug('No need to make a report for %r', self.user)
+            logging.debug('No need to make a report for %s(%s)',
+                          self.user.email,
+                          self.user.uid)
 
 
 class DropboxService(object):
