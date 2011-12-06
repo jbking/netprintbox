@@ -1,3 +1,4 @@
+from netprint import Item
 from netprintbox import data
 
 
@@ -19,8 +20,9 @@ def create_user(**kwargs):
 def create_file_info(user, **kwargs):
     default = {
             'path': '/path',
-            'size': 1,
             'rev': 'rev',
+            'size': 1,
+            'state': data.FileState.NEED_NETPRINT_ID,
             'netprint_name': 'path',
         }
     params = dict(default)
@@ -29,3 +31,17 @@ def create_file_info(user, **kwargs):
     file_info = data.DropboxFileInfo(**params)
     file_info.put()
     return file_info
+
+
+def create_netprint_item(**kwargs):
+    default = {
+            'id': 'id',
+            'name': 'name',
+            'file_size': '0MB',
+            'paper_size': 'A4',
+            'page_numbers': 1,
+            'valid_date': '1900/01/01',
+        }
+    params = dict(default)
+    params.update(kwargs)
+    return Item(**params)

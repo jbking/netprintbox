@@ -1,19 +1,30 @@
+<!DOCTYPE html>
 <html>
     <head>
-        <title>ネットプリント ファイル一覧</title>
+        <title>ネットプリントボックス ファイル一覧</title>
+        <style>
+            <!--
+            li p span {
+                padding-left: 1em;
+            }
+            -->
+        </style>
     </head>
     <body>
+        <ol>
         {{for loop, item in looper(item_list)}}
-        <p>
-            <span>{{loop.number}}</span>
-            <span>{{item['name']}}</span>
-            <span>{{item['id']}}</span>
-            {{if item['managed']}}
-            <span>監視中</span>
-            {{else}}
-            <span>監視しない</span>
-            {{endif}}
-        </p>
+            <li>
+                <p>
+                    <span>{{item['name']}}</span>
+                    <span>{{item['id']}}</span>
+                    {{if item['controlled']}}
+                    <span>{{item['last_modified']}}</span>
+                    {{else}}
+                    <span>ネットプリントのみに登録されています</span>
+                    {{endif}}
+                </p>
+            </li>
         {{endfor}}
+        </ol>
     </body>
 </html>

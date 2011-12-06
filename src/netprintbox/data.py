@@ -15,12 +15,18 @@ class DropboxUser(db.Model):
         return DropboxFileInfo.all().ancestor(self)
 
 
+class FileState(object):
+    NEED_NETPRINT_ID, LATEST = range(2)
+
+
 class DropboxFileInfo(db.Model):
-    path = db.StringProperty(required=True)
-    rev = db.StringProperty(required=True, indexed=False)
-    size = db.IntegerProperty(required=True, indexed=False)
+    path = db.StringProperty()
+    rev = db.StringProperty(indexed=False)
+    size = db.IntegerProperty(indexed=False)
+    state = db.IntegerProperty(required=True)
     netprint_id = db.StringProperty()
     netprint_name = db.StringProperty(required=True)
+    last_modified = db.DateTimeProperty(auto_now=True)
 
 
 class OAuthRequestToken(object):

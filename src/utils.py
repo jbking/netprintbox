@@ -1,13 +1,8 @@
 # -*- encoding: utf8 -*-
-import os
 import random
 import sys
-import time
 import mimetypes
 
-import tempita
-
-import settings
 
 OS_FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 
@@ -49,17 +44,3 @@ def encode_multipart_data(data):
     lines[-1] += "--"
 
     return "\r\n".join(lines), boundary
-
-
-def random_sleep():
-    if settings.DEBUG:
-        pass
-    else:
-        time.sleep(random.randint(0, 120))
-
-
-def load_template(path):
-    return tempita.HTMLTemplate(file(os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            'templates',
-            path)).read())
