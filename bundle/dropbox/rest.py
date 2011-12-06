@@ -5,7 +5,10 @@ directly unless you're implementing new methods we haven't added to the SDK yet.
 """
 
 import httplib
-import simplejson as json
+try:
+    import json
+except ImportError:
+    import simplejson as json
 import socket
 import urllib
 import urlparse
