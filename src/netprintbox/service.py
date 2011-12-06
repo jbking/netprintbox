@@ -132,6 +132,7 @@ class NetprintboxService(object):
                            if file_info.state == FileState.NEED_NETPRINT_ID)
 
         def txn():
+            # XXX hook file deleted.
             need_report = False
             items = {}
             for item in self.netprint.list():
