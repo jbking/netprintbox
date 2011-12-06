@@ -22,7 +22,7 @@ from StringIO import StringIO
 from BeautifulSoup import BeautifulSoup
 import httplib2
 
-from utils import is_multipart, encode_multipart_data, OS_FILESYSTEM_ENCODING
+from utils import is_multipart, encode_multipart_data
 
 
 header_row = [unicode(s, 'utf8') for s in
@@ -157,7 +157,7 @@ class Client(object):
     def ensure_encoding(self, s):
         if isinstance(s, str):
             # to unicode
-            s = s.decode(OS_FILESYSTEM_ENCODING)
+            s = s.decode('utf-8')
         if isinstance(s, unicode):
             # to netprint encoding
             s = s.encode(self._encoding, 'replace')

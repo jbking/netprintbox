@@ -1,10 +1,6 @@
 # -*- encoding: utf8 -*-
 import random
-import sys
 import mimetypes
-
-
-OS_FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 
 
 def is_multipart(data):
