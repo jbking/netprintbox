@@ -160,6 +160,7 @@ class NetprintboxService(object):
                             'name': netprint_name,
                             'id': "ERROR",
                             'controlled': True,
+                            'last_modified': file_info.last_modified,
                             }
 
             if not need_report:
@@ -177,9 +178,12 @@ class NetprintboxService(object):
     def make_report(self):
         (need_report, item_list) = self._make_report()
         if need_report:
+            logging.debug('Making a report for %r', self.user)
             template = load_template('report.html')
             self.dropbox.put(settings.REPORT_PATH,
                      StringIO(template.substitute(item_list=item_list)))
+        else:
+            logging.debug('No need to make a report for %r', self.user)
 
 
 class DropboxService(object):
