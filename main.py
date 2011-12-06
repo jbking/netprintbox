@@ -7,7 +7,7 @@ import logging
 import webapp2
 import httplib2
 
-import handlers
+from netprintbox import handlers
 
 if logging.getLogger().level <= logging.DEBUG:
     httplib2.debuglevel = 1
