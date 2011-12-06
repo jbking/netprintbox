@@ -3,7 +3,7 @@ import logging
 from StringIO import StringIO
 from ConfigParser import ConfigParser
 
-from google.appengine.ext.db import Key
+from google.appengine.ext import db
 from httplib2 import Http
 from dropbox.client import DropboxClient
 from dropbox.session import DropboxSession
@@ -49,7 +49,7 @@ class NetprintService(object):
 
 class NetprintboxService(object):
     def __init__(self, user):
-        if isinstance(user, (basestring, Key)):
+        if isinstance(user, (basestring, db.Key)):
             user = DropboxUser.get(user)
         self.user = user
 
@@ -106,42 +106,55 @@ class NetprintboxService(object):
         self.netprint.put(file_obj)
 
     def _make_report(self):
+        own_files = list(self.user.own_files())
         controlled_map = dict((file_info.netprint_name, file_info)
-                               for file_info in self.user.own_files()
-                               if file_info.state != FileState.UNCONTROLLED)
+                               for file_info in own_files)
         waiting_map = dict((file_info.netprint_name, file_info)
-                           for file_info in controlled_map.values()
+                           for file_info in own_files
                            if file_info.state == FileState.NEED_NETPRINT_ID)
 
-        item_list = []
-        for item in self.netprint.list():
-            item_dict = item._asdict()
-            netprint_id = item_dict['id']
-            netprint_name = item_dict['name']
-            if netprint_name in controlled_map:
-                if netprint_name in waiting_map:
-                    # Set netprint_id by latest result.
-                    file_info = waiting_map[netprint_name]
-                    file_info.netprint_id = netprint_id
-                    file_info.state = FileState.LATEST
-                    file_info.put()
-                item_dict['controlled'] = True
-            else:
-                item_dict['controlled'] = False
-            item_list.append(item_dict)
-        return item_list
+        def txn():
+            need_report = False
+            items = {}
+            for item in self.netprint.list():
+                item_dict = item._asdict()
+                netprint_id = item_dict['id']
+                netprint_name = item_dict['name']
+                if netprint_name in controlled_map:
+                    if netprint_name in waiting_map:
+                        # Set netprint_id by latest result.
+                        file_info = waiting_map[netprint_name]
+                        file_info.netprint_id = netprint_id
+                        file_info.state = FileState.LATEST
+                        file_info.put()
+                        need_report = True
+                    item_dict['controlled'] = True
+                else:
+                    need_report = True
+                    item_dict['controlled'] = False
+                items[netprint_name] = item_dict
+            for file_info in own_files:
+                netprint_name = file_info.netprint_name
+                if netprint_name not in items:
+                    items[netprint_name] = {
+                            'name': netprint_name,
+                            'id': "ERROR",
+                            'controlled': True,
+                            }
+            return (need_report, items.values())
+        return db.run_in_transaction(txn)
 
     def make_report(self):
-        item_list = self._make_report
-        # XXX don't make report when no changes.
-        template = load_template('report.html')
-        self.dropbox.put(settings.REPORT_PATH,
-                 StringIO(template.substitute(item_list=item_list)))
+        (need_report, item_list) = self._make_report()
+        if need_report:
+            template = load_template('report.html')
+            self.dropbox.put(settings.REPORT_PATH,
+                     StringIO(template.substitute(item_list=item_list)))
 
 
 class DropboxService(object):
     def __init__(self, user):
-        if isinstance(user, (basestring, Key)):
+        if isinstance(user, (basestring, db.Key)):
             user = DropboxUser.get(user)
         self.user = user
 

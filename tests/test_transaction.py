@@ -187,8 +187,6 @@ class SyncFeatureTest(TransactionTestBase):
 
     @attr('unit', 'light')
     def test_netprint_has_original_file(self):
-        from netprintbox.data import FileState
-
         class context(object):
             user = create_user()
 
@@ -199,11 +197,8 @@ class SyncFeatureTest(TransactionTestBase):
         transaction._netprint_only(dict(id='original_id',
                                         name='original_name'))
 
-        q = context.user.own_files().filter('state = ', FileState.UNCONTROLLED)
-        self.assertEqual(q.count(), 1)
-        file_info = q.get()
-        self.assertEqual(file_info.netprint_id, 'original_id')
-        self.assertEqual(file_info.netprint_name, 'original_name')
+        q = context.user.own_files()
+        self.assertEqual(q.count(), 0)
 
     @attr('unit', 'light')
     def test_causing_an_error(self):

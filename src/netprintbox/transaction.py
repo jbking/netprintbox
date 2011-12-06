@@ -139,7 +139,6 @@ class SyncTransaction(object):
     def _netprint_only(self, netprint_item):
         def txn():
             netprint_id = netprint_item['id']
-            netprint_name = netprint_item['name']
             query = self.context.user.own_files()\
                     .filter('netprint_id = ', netprint_id)
 
@@ -152,10 +151,7 @@ class SyncTransaction(object):
                 self.context.netprint.delete(netprint_id)
             else:
                 # An uncontrolled file is found.
-                DropboxFileInfo(parent=self.context.user,
-                                state=FileState.UNCONTROLLED,
-                                netprint_id=netprint_id,
-                                netprint_name=netprint_name).put()
+                pass
         db.run_in_transaction(txn)
 
     def sync(self):

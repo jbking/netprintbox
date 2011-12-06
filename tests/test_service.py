@@ -32,13 +32,6 @@ class NetprintboxServiceTest(ServiceTestBase):
                          netprint_name=normalize('/need_netprint_id.data'),
                          state=FileState.NEED_NETPRINT_ID)
         create_file_info(user,
-                         path=None,
-                         rev=None,
-                         size=None,
-                         netprint_name='uncontrolled.jpg',
-                         netprint_id='uncontrolled',
-                         state=FileState.UNCONTROLLED)
-        create_file_info(user,
                          path='/latest.data',
                          netprint_id='latest',
                          netprint_name=normalize('/latest.data'),
@@ -62,9 +55,11 @@ class NetprintboxServiceTest(ServiceTestBase):
         service = self._getOUT(user)
         service.netprint = netprint
 
+        (need_report, result) = service._make_report()
+        self.assertTrue(need_report)
         self.assertItemsEqual(
             [(item['id'], item['name'], item['controlled'])
-             for item in service._make_report()],
+             for item in result],
             [('need_xxxx', normalize('/need_netprint_id.data'), True),
              ('uncontrolled', 'uncontrolled.jpg', False),
              ('latest', normalize('/latest.data'), True),
@@ -72,4 +67,27 @@ class NetprintboxServiceTest(ServiceTestBase):
 
     @attr('unit', 'light')
     def test_donot_make_report_if_no_change(self):
-        raise NotImplementedError
+        from netprintbox.data import FileState
+        from netprintbox.utils import normalize_name as normalize
+
+        user = create_user()
+        create_file_info(user,
+                         path='/latest.data',
+                         netprint_id='latest',
+                         netprint_name=normalize('/latest.data'),
+                         state=FileState.LATEST)
+
+        class netprint(object):
+            @staticmethod
+            def list():
+                return [
+                        create_netprint_item(
+                            id='latest',
+                            name=normalize('/latest.data')),
+                       ]
+
+        service = self._getOUT(user)
+        service.netprint = netprint
+
+        (need_report, _result) = service._make_report()
+        self.assertFalse(need_report)
