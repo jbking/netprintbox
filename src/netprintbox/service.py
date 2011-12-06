@@ -121,14 +121,15 @@ class NetprintboxService(object):
                 netprint_id = item_dict['id']
                 netprint_name = item_dict['name']
                 if netprint_name in controlled_map:
+                    file_info = controlled_map[netprint_name]
                     if netprint_name in waiting_map:
                         # Set netprint_id by latest result.
-                        file_info = waiting_map[netprint_name]
                         file_info.netprint_id = netprint_id
                         file_info.state = FileState.LATEST
                         file_info.put()
                         need_report = True
                     item_dict['controlled'] = True
+                    item_dict['last_modified'] = file_info.last_modified
                 else:
                     need_report = True
                     item_dict['controlled'] = False
@@ -188,10 +189,11 @@ class DropboxService(object):
     def obtain(self, path, limit=None):
         path = ensure_binary_string(path)
         logging.debug(u"Obtaining file: %r", path)
-        res = self.client.get_file(path)
-        if limit and res.length > limit:
+        metadata = self.list(path)
+        if limit and metadata['bytes'] > limit:
             raise OverLimit("The response contains %d bytes data."\
-                            % res.length)
+                            % metadata['bytes'])
+        res = self.client.get_file(path)
         file_obj = StringIO(res.read())
         file_obj.name = path
         return file_obj

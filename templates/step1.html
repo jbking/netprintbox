@@ -1,10 +1,13 @@
+<!DOCTYPE html>
 <html>
     <head>
+        <link rel="stylesheet" href="/static/css/page.css" type="text/css" />
         <title>step1:ネットプリントユーザ情報の登録</title>
     </head>
     <body>
+        <h1>step1:ネットプリントユーザ情報の登録</h1>
         {{if error}}
-        <p>ネットプリントユーザ情報が読み取れませんでした。</p>
+        <p class="error">ネットプリントユーザ情報が読み取れませんでした。</p>
         {{else}}
         <p>アプリケーションのディレクトリにテキストファイルを配置しました。</p>
         {{endif}}

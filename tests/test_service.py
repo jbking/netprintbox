@@ -86,7 +86,7 @@ class NetprintboxServiceTest(ServiceTestBase):
                             name=normalize('/latest.data')),
                        ]
 
-        service = self._getOUT(user)
+        service = self._getOUT(user.key())
         service.netprint = netprint
 
         (need_report, _result) = service._make_report()

@@ -38,11 +38,19 @@ class CronHandler(webapp2.RequestHandler):
                           countdown=random.randint(0, SLEEP_WAIT))
 
 
-class QueueWorker(webapp2.RequestHandler):
+class SyncWorker(webapp2.RequestHandler):
     def post(self):
         user_key = self.request.get('key')
         service = NetprintboxService(user_key)
         service.sync()
+        taskqueue.add(url='/task/make_report', params={'key': user_key},
+                      countdown=random.randint(0, SLEEP_WAIT))
+
+
+class MakeReportHandler(webapp2.RequestHandler):
+    def post(self):
+        user_key = self.request.get('key')
+        service = NetprintboxService(user_key)
         service.make_report()
 
 
@@ -76,7 +84,7 @@ class SetupGuide(webapp2.RequestHandler):
             self.step1(key, error=True)
         else:
             user = q.get()
-            taskqueue.add(url='/task/check', params={'key': user.key})
+            taskqueue.add(url='/task/check', params={'key': user.key()})
             self.step2()
 
     def step1(self, key, error=False):
@@ -92,4 +100,12 @@ class SetupGuide(webapp2.RequestHandler):
         template = load_template('step2.html')
         response = exc.HTTPOk()
         response.body = template.substitute(error=error)
+        raise response
+
+
+class TopHandler(webapp2.RequestHandler):
+    def get(self):
+        template = load_template('top.html')
+        response = exc.HTTPOk()
+        response.body = template.substitute()
         raise response
