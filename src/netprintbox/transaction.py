@@ -172,13 +172,21 @@ class SyncTransaction(object):
                 pass
         db.run_in_transaction(txn)
 
+    def _gae_only(self, file_info):
+        file_info.delete()
+
     def sync(self):
         item_in_dropbox = _collect_entries(self.context.dropbox.list('/'))
         item_in_netprint = _map_netprint_result(self.context.netprint.list())
+        info_in_gae = dict((file_info.netprint_name, file_info)
+                           for file_info in self.context.user.own_files())
 
-        key_in_both = set(item_in_dropbox) & set(item_in_netprint)
-        key_in_dropbox_only = set(item_in_dropbox) - set(item_in_netprint)
-        key_in_netprint_only = set(item_in_netprint) - set(item_in_dropbox)
+        key_in_dropbox = set(item_in_dropbox)
+        key_in_netprint = set(item_in_netprint)
+        key_in_both = key_in_dropbox & key_in_netprint
+        key_in_dropbox_only = key_in_dropbox - key_in_netprint
+        key_in_netprint_only = key_in_netprint - key_in_dropbox
+        key_in_gae = set(info_in_gae)
 
         for key in key_in_both:
             self._both(item_in_dropbox[key], item_in_netprint[key])
@@ -188,3 +196,6 @@ class SyncTransaction(object):
 
         for key in key_in_netprint_only:
             self._netprint_only(item_in_netprint[key])
+
+        for key in key_in_gae - (key_in_dropbox | key_in_netprint):
+            self._gae_only(info_in_gae[key])
