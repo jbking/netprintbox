@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 """
     Netprintbox
     Copyright (C) 2011  MURAOKA Yusuke <yusuke@jbking.org>
@@ -23,7 +24,7 @@ from StringIO import StringIO
 from ConfigParser import ConfigParser
 
 from google.appengine.ext import db
-from google.appengine.api import memcache
+from google.appengine.api import memcache, mail
 from httplib2 import Http
 from dropbox.client import DropboxClient
 from dropbox.session import DropboxSession
@@ -71,10 +72,11 @@ class NetprintService(object):
 
 
 class NetprintboxService(object):
-    def __init__(self, user):
+    def __init__(self, user, request=None):
         if isinstance(user, (basestring, db.Key)):
             user = DropboxUser.get(user)
         self.user = user
+        self.request = request
 
     @property
     def netprint(self):
@@ -90,7 +92,7 @@ class NetprintboxService(object):
     @property
     def dropbox(self):
         if getattr(self, '_dropbox', None) is None:
-            self._dropbox = DropboxService(self.user)
+            self._dropbox = DropboxService(self.user, self.request)
         return self._dropbox
 
     @dropbox.setter
@@ -206,6 +208,13 @@ def handle_error_response(func):
             self.user.pending = True
             self.user.put()
             logging.exception("User becomes pending: %s", self.user.key())
+            mail.send_mail(to=self.user.email,
+                    subject=u'Dropbox連携の一時停止',
+                    sender=settings.SYSADMIN_ADDRESS,
+                    body=load_template('pending_notification.txt')\
+                            .substitute(
+                                host=self.host,
+                                user_name=self.user.display_name))
             raise BecomePendingUser
     _func.func_name = func.func_name
     _func.func_doc = func.func_doc
@@ -213,10 +222,11 @@ def handle_error_response(func):
 
 
 class DropboxService(object):
-    def __init__(self, user):
+    def __init__(self, user, request=None):
         if isinstance(user, (basestring, db.Key)):
             user = DropboxUser.get(user)
         self.user = user
+        self.request = request
 
     @property
     def client(self):
@@ -231,6 +241,10 @@ class DropboxService(object):
     @client.setter
     def client(self, client):
         self._client = client
+
+    @property
+    def host(self):
+        return self.request.host if self.request else None
 
     @handle_error_response
     def list(self, path, recursive=True):

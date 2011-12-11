@@ -104,15 +104,25 @@ class NetprintboxServiceTest(ServiceTestBase):
         self.assertFalse(need_report)
 
 
-class DropboxServiceTest(ServiceTestBase):
+class DropboxServicePendingNotificationTest(ServiceTestBase):
+    def setUp(self):
+        from google.appengine.ext import testbed
+
+        super(DropboxServicePendingNotificationTest, self).setUp()
+        self.testbed.init_mail_stub()
+        self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
+
     def _getOUT(self, user):
         from netprintbox.service import DropboxService
-        return DropboxService(user)
 
-    @attr('unit', 'light')
-    def test_session_error(self):
+        class request(object):
+            host = 'foobar'
+        return DropboxService(user, request)
+
+    def _test_session_error(self, method_name, *args):
         from dropbox.rest import ErrorResponse
         from netprintbox.exceptions import BecomePendingUser
+        import settings
 
         class FakeClient(object):
             def __getattr__(self, name):
@@ -125,16 +135,34 @@ class DropboxServiceTest(ServiceTestBase):
                         return ''
                 raise ErrorResponse(http_resp)
 
-        for params in (('list', '/'),
-                       ('obtain', '/'),
-                       ('put', '/', None),
-                       ('delete', '/')):
-            user = create_user()
-            service = self._getOUT(user)
-            service.client = FakeClient()
-            try:
-                self.assertFalse(user.pending)
-                getattr(service, params[0])(*params[1:])
-                self.fail("Don't become pending")
-            except BecomePendingUser:
-                self.assertTrue(user.pending)
+        user = create_user()
+        service = self._getOUT(user)
+        service.client = FakeClient()
+        try:
+            self.assertFalse(user.pending)
+            getattr(service, method_name)(*args)
+            self.fail("Don't become pending")
+        except BecomePendingUser:
+            self.assertTrue(user.pending)
+            sent_messages = self.mail_stub.get_sent_messages(to=user.email)
+            self.assertEqual(len(sent_messages), 1)
+            message = sent_messages[0]
+            message_body = str(message.body)
+            self.assertIn('http://foobar/dropbox/authorize', message_body)
+            self.assertIn(settings.SYSADMIN_ADDRESS, message.sender)
+
+    @attr('unit', 'light')
+    def test_list(self):
+        self._test_session_error('list', '/')
+
+    @attr('unit', 'light')
+    def test_obtain(self):
+        self._test_session_error('obtain', '/')
+
+    @attr('unit', 'light')
+    def test_put(self):
+        self._test_session_error('put', '/', None)
+
+    @attr('unit', 'light')
+    def test_delete(self):
+        self._test_session_error('delete', '/')
