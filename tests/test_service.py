@@ -67,15 +67,21 @@ class NetprintboxServiceTest(ServiceTestBase):
             ])
 
     @attr('unit', 'light')
-    def test_donot_make_report_if_no_change(self):
+    def test_do_not_make_report_if_no_change(self):
+        import hashlib
+        from google.appengine.api import memcache
         from netprintbox.data import FileState
         from netprintbox.utils import normalize_name as normalize
 
+        NETPRINT_ID = 'latest'
+        ORIGINAL_PATH = '/latest.data'
+        NETPRINT_NAME = normalize(ORIGINAL_PATH)
+
         user = create_user()
         create_file_info(user,
-                         path='/latest.data',
-                         netprint_id='latest',
-                         netprint_name=normalize('/latest.data'),
+                         path=ORIGINAL_PATH,
+                         netprint_id=NETPRINT_ID,
+                         netprint_name=NETPRINT_NAME,
                          state=FileState.LATEST)
 
         class netprint(object):
@@ -83,9 +89,13 @@ class NetprintboxServiceTest(ServiceTestBase):
             def list():
                 return [
                         create_netprint_item(
-                            id='latest',
-                            name=normalize('/latest.data')),
+                            id=NETPRINT_ID,
+                            name=NETPRINT_NAME)
                        ]
+
+        md5 = hashlib.new('md5')
+        md5.update(NETPRINT_ID)
+        memcache.set(str(user.key()), md5.hexdigest())
 
         service = self._getOUT(user.key())
         service.netprint = netprint
