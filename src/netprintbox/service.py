@@ -49,8 +49,6 @@ class NetprintService(object):
     @property
     def client(self):
         if getattr(self, '_client', None) is None:
-            if self.user.pending:
-                raise PendingUser(self.user)
             self._client = NetprintClient(Http(), settings.USER_AGENT)
             self._client.login(self.username, self.password)
         return self._client
@@ -203,7 +201,7 @@ class NetprintboxService(object):
 def handle_error_response(func):
     def _func(self, *args, **kwargs):
         try:
-            func(self, *args, **kwargs)
+            return func(self, *args, **kwargs)
         except ErrorResponse:
             self.user.pending = True
             self.user.put()
