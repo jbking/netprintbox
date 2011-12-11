@@ -245,6 +245,7 @@ class SyncFeatureTest(TransactionTestBase):
 
         self.assertEqual(list(context.user.own_files()), [])
 
+
 class ObtainingLimitTest(TransactionTestBase):
     @attr('unit', 'light')
     def test_over_limit_for_account(self):
