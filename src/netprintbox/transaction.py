@@ -15,6 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import logging
 
 from google.appengine.ext import db
 
@@ -173,6 +174,12 @@ class SyncTransaction(object):
         db.run_in_transaction(txn)
 
     def _gae_only(self, file_info):
+        logging.info("Remove an orphan data: netprint_id = %s\n"
+                     "netprint_name = %r\n"
+                     "dropbox rev = %s\n",
+                     file_info.netprint_id,
+                     file_info.netprint_name,
+                     file_info.rev)
         file_info.delete()
 
     def sync(self):
