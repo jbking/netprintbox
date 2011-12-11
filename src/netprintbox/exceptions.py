@@ -23,3 +23,11 @@ class OverLimit(ValueError):
 
 class TransactionError(Exception):
     pass
+
+
+class PendingUser(Exception):
+    pass
+
+
+class BecomePendingUser(PendingUser):
+    pass
