@@ -130,6 +130,20 @@ class NetprintboxService(object):
         file_obj = self.dropbox.obtain(path, limit=limit)
         self.netprint.put(file_obj)
 
+    def _compare_by_hash(self):
+        md5 = hashlib.new('md5')
+        key = str(self.user.key())
+        for item in self.netprint.list():
+            md5.update(item.id)
+        digest = md5.hexdigest()
+        logging.debug('Generated digest is %s, and cached is %s',
+                      digest,
+                      memcache.get(key))
+        need_report = digest != memcache.get(key)
+        if need_report:
+            memcache.set(key, digest)
+        return need_report
+
     def _make_report(self):
         own_files = list(self.user.own_files())
         controlled_map = dict((file_info.netprint_name, file_info)
@@ -169,17 +183,7 @@ class NetprintboxService(object):
                             }
 
             if not need_report:
-                md5 = hashlib.new('md5')
-                key = str(self.user.key())
-                for item in self.netprint.list():
-                    md5.update(item.id)
-                digest = md5.hexdigest()
-                logging.debug('Generated digest is %s, and cached is %s',
-                              digest,
-                              memcache.get(key))
-                need_report = digest != memcache.get(key)
-                if need_report:
-                    memcache.set(key, digest)
+                need_report = self._compare_by_hash()
             return (need_report, items.values())
         return db.run_in_transaction(txn)
 
