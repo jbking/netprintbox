@@ -222,6 +222,28 @@ class SyncFeatureTest(TransactionTestBase):
         q = context.user.own_files()
         self.assertEqual(q.count(), 0)
 
+    @attr('unit', 'light')
+    def test_file_data_only_neither_netprint_or_dropbox(self):
+        class context(object):
+            user = create_user()
+
+            class dropbox(object):
+                @staticmethod
+                def list(path):
+                    return {'is_dir': True,
+                            'contents': []}
+
+            class netprint(object):
+                @staticmethod
+                def list():
+                    return {}
+
+        create_file_info(context.user)
+
+        transaction = self._getOUT(context)
+        transaction.sync()
+
+        self.assertEqual(list(context.user.own_files()), [])
 
 class ObtainingLimitTest(TransactionTestBase):
     @attr('unit', 'light')
