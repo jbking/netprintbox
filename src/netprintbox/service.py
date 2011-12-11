@@ -27,12 +27,13 @@ from google.appengine.api import memcache
 from httplib2 import Http
 from dropbox.client import DropboxClient
 from dropbox.session import DropboxSession
+from dropbox.rest import ErrorResponse
 
 import settings
 
 from netprint import Client as NetprintClient
 from netprintbox.utils import load_template
-from netprintbox.exceptions import OverLimit
+from netprintbox.exceptions import OverLimit, PendingUser, BecomePendingUser
 from netprintbox.data import OAuthRequestToken, DropboxUser, FileState
 from netprintbox.transaction import SyncTransaction
 from dropbox_utils import traverse, ensure_binary_string
@@ -47,12 +48,14 @@ class NetprintService(object):
     @property
     def client(self):
         if getattr(self, '_client', None) is None:
+            if self.user.pending:
+                raise PendingUser(self.user)
             self._client = NetprintClient(Http(), settings.USER_AGENT)
             self._client.login(self.username, self.password)
         return self._client
 
     @client.setter
-    def set_client(self, client):
+    def client(self, client):
         self._client = client
 
     def list(self):
@@ -195,6 +198,20 @@ class NetprintboxService(object):
                           self.user.uid)
 
 
+def handle_error_response(func):
+    def _func(self, *args, **kwargs):
+        try:
+            func(self, *args, **kwargs)
+        except ErrorResponse:
+            self.user.pending = True
+            self.user.put()
+            logging.exception("User becomes pending: %s", self.user.key())
+            raise BecomePendingUser
+    _func.func_name = func.func_name
+    _func.func_doc = func.func_doc
+    return _func
+
+
 class DropboxService(object):
     def __init__(self, user):
         if isinstance(user, (basestring, db.Key)):
@@ -204,15 +221,18 @@ class DropboxService(object):
     @property
     def client(self):
         if getattr(self, '_client', None) is None:
+            if self.user.pending:
+                raise PendingUser(self.user)
             session = self.get_session()
             session.set_token(self.user.access_key, self.user.access_secret)
             self._client = DropboxClient(session)
         return self._client
 
     @client.setter
-    def set_client(self, client):
+    def client(self, client):
         self._client = client
 
+    @handle_error_response
     def list(self, path, recursive=True):
         if recursive:
             result = self.list(path, recursive=False)
@@ -228,6 +248,7 @@ class DropboxService(object):
             logging.debug(u"Listing metadata of: %r", path)
             return self.client.metadata(path)
 
+    @handle_error_response
     def obtain(self, path, limit=None):
         path = ensure_binary_string(path)
         logging.debug(u"Obtaining file: %r", path)
@@ -240,11 +261,13 @@ class DropboxService(object):
         file_obj.name = path
         return file_obj
 
+    @handle_error_response
     def put(self, path, file_obj, overwrite=True):
         path = ensure_binary_string(path)
         logging.debug(u"Putting file to Dropbox: %r", path)
         return self.client.put_file(path, file_obj, overwrite=overwrite)
 
+    @handle_error_response
     def delete(self, path):
         path = ensure_binary_string(path)
         logging.debug(u"Deleting file from Dropbox: %r", path)
@@ -289,6 +312,7 @@ class DropboxService(object):
             user.display_name = account_info['display_name']
             user.access_key = session.token.key
             user.access_secret = session.token.secret
+            user.pending = False
         user.put()
 
         OAuthRequestToken.delete(request_key)

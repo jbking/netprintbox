@@ -102,3 +102,39 @@ class NetprintboxServiceTest(ServiceTestBase):
 
         (need_report, _result) = service._make_report()
         self.assertFalse(need_report)
+
+
+class DropboxServiceTest(ServiceTestBase):
+    def _getOUT(self, user):
+        from netprintbox.service import DropboxService
+        return DropboxService(user)
+
+    @attr('unit', 'light')
+    def test_session_error(self):
+        from dropbox.rest import ErrorResponse
+        from netprintbox.exceptions import BecomePendingUser
+
+        class FakeClient(object):
+            def __getattr__(self, name):
+                class http_resp(object):
+                    status = 401
+                    reason = 'Unauthorize'
+
+                    @staticmethod
+                    def read():
+                        return ''
+                raise ErrorResponse(http_resp)
+
+        for params in (('list', '/'),
+                       ('obtain', '/'),
+                       ('put', '/', None),
+                       ('delete', '/')):
+            user = create_user()
+            service = self._getOUT(user)
+            service.client = FakeClient()
+            try:
+                self.assertFalse(user.pending)
+                getattr(service, params[0])(*params[1:])
+                self.fail("Don't become pending")
+            except BecomePendingUser:
+                self.assertTrue(user.pending)

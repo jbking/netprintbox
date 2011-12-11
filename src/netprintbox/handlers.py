@@ -28,6 +28,7 @@ import dropbox
 
 import settings
 from netprintbox.data import DropboxUser
+from netprintbox.exceptions import OverLimit, PendingUser
 from netprintbox.utils import load_template
 from netprintbox.service import DropboxService, NetprintboxService
 from settings import SLEEP_WAIT
@@ -50,26 +51,35 @@ class AuthCallbackHandler(webapp2.RequestHandler):
 
 class CronHandler(webapp2.RequestHandler):
     def get(self):
-        for key in DropboxUser.all(keys_only=True):
-            # XXX check the need to sync?
-            taskqueue.add(url='/task/check', params={'key': key},
-                          countdown=random.randint(0, SLEEP_WAIT))
+        for user in DropboxUser.all():
+            if not user.pending:
+                # XXX check the need to sync?
+                taskqueue.add(url='/task/check', params={'key': user.key()},
+                              countdown=random.randint(0, SLEEP_WAIT))
 
 
 class SyncWorker(webapp2.RequestHandler):
     def post(self):
         user_key = self.request.get('key')
-        service = NetprintboxService(user_key)
-        service.sync()
-        taskqueue.add(url='/task/make_report', params={'key': user_key},
-                      countdown=random.randint(0, SLEEP_WAIT))
+        try:
+            service = NetprintboxService(user_key)
+            service.sync()
+            taskqueue.add(url='/task/make_report', params={'key': user_key},
+                          countdown=random.randint(0, SLEEP_WAIT))
+        except PendingUser:
+            logging.exception('user_key: %s', user_key)
+        except OverLimit:
+            logging.exception('user_key: %s', user_key)
 
 
 class MakeReportHandler(webapp2.RequestHandler):
     def post(self):
         user_key = self.request.get('key')
-        service = NetprintboxService(user_key)
-        service.make_report()
+        try:
+            service = NetprintboxService(user_key)
+            service.make_report()
+        except PendingUser:
+            logging.exception('User is pending: %s', user_key)
 
 
 class SetupGuide(webapp2.RequestHandler):
@@ -81,6 +91,9 @@ class SetupGuide(webapp2.RequestHandler):
 
         user = q.get()
         service = NetprintboxService(user)
+
+        if user.pending:
+            self.need_reauthorize()
 
         need_to_create_account_info = False
         try:
@@ -104,6 +117,11 @@ class SetupGuide(webapp2.RequestHandler):
             user = q.get()
             taskqueue.add(url='/task/check', params={'key': user.key()})
             self.step2()
+
+    def need_reauthorize(self):
+        callback_url = 'http://%s/dropbox/callback' % self.request.host
+        authz_url = DropboxService.build_authorize_url(callback_url)
+        raise exc.HTTPFound(location=authz_url)
 
     def step1(self, key, error=False):
         """ no account info """
