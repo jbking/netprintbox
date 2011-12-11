@@ -119,7 +119,7 @@ class SetupGuide(webapp2.RequestHandler):
             self.step2()
 
     def need_reauthorize(self):
-        callback_url = 'http://%s/dropbox/callback' % self.request.host
+        callback_url = 'http://%s/dropbox/authorize' % self.request.host
         authz_url = DropboxService.build_authorize_url(callback_url)
         raise exc.HTTPFound(location=authz_url)
 
