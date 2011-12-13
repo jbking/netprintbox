@@ -128,7 +128,7 @@ class DropboxServicePendingNotificationTest(ServiceTestBase):
             def __getattr__(self, name):
                 class http_resp(object):
                     status = 401
-                    reason = 'Unauthorize'
+                    reason = 'Unauthorized'
 
                     @staticmethod
                     def read():
@@ -183,16 +183,20 @@ class DropboxServiceRecognizeErrorResponse(ServiceTestBase):
             host = 'foobar'
         return DropboxService(user, request)
 
-    @attr('unit', 'light')
-    def test_not_found(self):
+    def _test_metadata(self, expected_exception, status, reason,
+                       how_many_messages=0):
         from dropbox.rest import ErrorResponse
 
         class client(object):
-            @staticmethod
-            def metadata(path):
+
+            def __init__(self, status, reason):
+                self.status = status
+                self.reason = reason
+
+            def metadata(self, path):
                 class http_resp(object):
-                    status = 404
-                    reason = 'Not Found'
+                    status = self.status
+                    reason = self.reason
 
                     @staticmethod
                     def read():
@@ -201,8 +205,47 @@ class DropboxServiceRecognizeErrorResponse(ServiceTestBase):
 
         user = create_user()
         service = self._getOUT(user)
-        service.client = client
-        with self.assertRaises(ErrorResponse):
+        service.client = client(status, reason)
+        with self.assertRaises(expected_exception):
             service.list('/')
         sent_messages = self.mail_stub.get_sent_messages(to=user.email)
-        self.assertEqual(len(sent_messages), 0)
+        self.assertEqual(len(sent_messages), how_many_messages)
+
+    @attr('unit', 'light')
+    def test_bad_request(self):
+        from netprintbox.exceptions import DropboxBadRequest
+        self._test_metadata(DropboxBadRequest, 400, 'Bad request')
+
+    @attr('unit', 'light')
+    def test_unauthorized(self):
+        from netprintbox.exceptions import BecomePendingUser
+        self._test_metadata(BecomePendingUser, 401, 'Unauthorized',
+                            how_many_messages=1)
+
+    @attr('unit', 'light')
+    def test_forbidden(self):
+        from netprintbox.exceptions import DropboxForbidden
+        self._test_metadata(DropboxForbidden, 403, 'Forbidden')
+
+    @attr('unit', 'light')
+    def test_not_found(self):
+        from netprintbox.exceptions import DropboxNotFound
+        self._test_metadata(DropboxNotFound, 404, 'Not found')
+
+    @attr('unit', 'light')
+    def test_method_not_allowed(self):
+        from netprintbox.exceptions import DropboxMethodNotAllowed
+        self._test_metadata(DropboxMethodNotAllowed, 405,
+                            'Method not allowed')
+
+    @attr('unit', 'light')
+    def test_service_unavailable(self):
+        from netprintbox.exceptions import DropboxServiceUnavailable
+        self._test_metadata(DropboxServiceUnavailable, 503,
+                            'Service unavailable')
+
+    @attr('unit', 'light')
+    def test_insufficient_storage(self):
+        from netprintbox.exceptions import DropboxInsufficientStorage
+        self._test_metadata(DropboxInsufficientStorage, 507,
+                            'Insufficient storage')

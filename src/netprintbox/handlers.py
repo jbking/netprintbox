@@ -16,7 +16,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-
+from contextlib import contextmanager
 import logging
 import random
 from StringIO import StringIO
@@ -28,7 +28,10 @@ import dropbox
 
 import settings
 from netprintbox.data import DropboxUser
-from netprintbox.exceptions import OverLimit, PendingUser
+from netprintbox.exceptions import (
+        OverLimit, PendingUser,
+        DropboxServiceUnavailable, DropboxServerError
+)
 from netprintbox.utils import load_template
 from netprintbox.service import DropboxService, NetprintboxService
 from settings import SLEEP_WAIT
@@ -58,28 +61,32 @@ class CronHandler(webapp2.RequestHandler):
                               countdown=random.randint(0, SLEEP_WAIT))
 
 
+@contextmanager
+def handling_task_exception(user_key):
+    try:
+        yield
+    except (PendingUser, OverLimit):
+        logging.exception('user_key: %s', user_key)
+    except (DropboxServiceUnavailable, DropboxServerError):
+        logging.exception('user_key: %s', user_key)
+
+
 class SyncWorker(webapp2.RequestHandler):
     def post(self):
         user_key = self.request.get('key')
-        try:
+        with handling_task_exception(user_key):
             service = NetprintboxService(user_key)
             service.sync()
             taskqueue.add(url='/task/make_report', params={'key': user_key},
                           countdown=random.randint(0, SLEEP_WAIT))
-        except PendingUser:
-            logging.exception('user_key: %s', user_key)
-        except OverLimit:
-            logging.exception('user_key: %s', user_key)
 
 
 class MakeReportHandler(webapp2.RequestHandler):
     def post(self):
         user_key = self.request.get('key')
-        try:
+        with handling_task_exception(user_key):
             service = NetprintboxService(user_key)
             service.make_report()
-        except PendingUser:
-            logging.exception('User is pending: %s', user_key)
 
 
 class SetupGuide(webapp2.RequestHandler):

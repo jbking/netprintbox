@@ -20,6 +20,7 @@
 import os
 import logging
 import hashlib
+from httplib import HTTPException
 from StringIO import StringIO
 from ConfigParser import ConfigParser
 
@@ -34,7 +35,13 @@ import settings
 
 from netprint import Client as NetprintClient
 from netprintbox.utils import load_template
-from netprintbox.exceptions import OverLimit, PendingUser, BecomePendingUser
+from netprintbox.exceptions import (
+        OverLimit, PendingUser, BecomePendingUser,
+        DropboxBadRequest, DropboxForbidden,
+        DropboxNotFound, DropboxMethodNotAllowed,
+        DropboxServiceUnavailable, DropboxInsufficientStorage,
+        DropboxServerError
+)
 from netprintbox.data import OAuthRequestToken, DropboxUser, FileState
 from netprintbox.transaction import SyncTransaction
 from dropbox_utils import traverse, ensure_binary_string
@@ -207,9 +214,11 @@ def handle_error_response(func):
         try:
             return func(self, *args, **kwargs)
         except ErrorResponse as e:
-            if int(e.status) in (404,):
-                raise
-            else:
+            exc_type = None
+            status = int(e.status)
+            if status == 400:
+                exc_type = DropboxBadRequest
+            elif status == 401:
                 self.user.pending = True
                 self.user.put()
                 logging.exception("User becomes pending: %s", self.user.key())
@@ -221,6 +230,19 @@ def handle_error_response(func):
                                     host=self.host,
                                     user_name=self.user.display_name))
                 raise BecomePendingUser
+            elif status == 403:
+                exc_type = DropboxForbidden
+            elif status == 404:
+                exc_type = DropboxNotFound
+            elif status == 405:
+                exc_type = DropboxMethodNotAllowed
+            elif status == 503:
+                exc_type = DropboxServiceUnavailable
+            elif status == 507:
+                exc_type = DropboxInsufficientStorage
+            raise exc_type(e.message)
+        except HTTPException as e:
+            raise DropboxServerError(e.message)
     _func.func_name = func.func_name
     _func.func_doc = func.func_doc
     return _func
