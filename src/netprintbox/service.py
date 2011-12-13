@@ -206,18 +206,21 @@ def handle_error_response(func):
     def _func(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
-        except ErrorResponse:
-            self.user.pending = True
-            self.user.put()
-            logging.exception("User becomes pending: %s", self.user.key())
-            mail.send_mail(to=self.user.email,
-                    subject=u'Dropbox連携の一時停止',
-                    sender=settings.SYSADMIN_ADDRESS,
-                    body=load_template('pending_notification.txt')\
-                            .substitute(
-                                host=self.host,
-                                user_name=self.user.display_name))
-            raise BecomePendingUser
+        except ErrorResponse as e:
+            if int(e.status) in (404,):
+                raise
+            else:
+                self.user.pending = True
+                self.user.put()
+                logging.exception("User becomes pending: %s", self.user.key())
+                mail.send_mail(to=self.user.email,
+                        subject=u'Dropbox連携の一時停止',
+                        sender=settings.SYSADMIN_ADDRESS,
+                        body=load_template('pending_notification.txt')\
+                                .substitute(
+                                    host=self.host,
+                                    user_name=self.user.display_name))
+                raise BecomePendingUser
     _func.func_name = func.func_name
     _func.func_doc = func.func_doc
     return _func

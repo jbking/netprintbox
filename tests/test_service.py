@@ -166,3 +166,43 @@ class DropboxServicePendingNotificationTest(ServiceTestBase):
     @attr('unit', 'light')
     def test_delete(self):
         self._test_session_error('delete', '/')
+
+
+class DropboxServiceRecognizeErrorResponse(ServiceTestBase):
+    def setUp(self):
+        from google.appengine.ext import testbed
+
+        super(DropboxServiceRecognizeErrorResponse, self).setUp()
+        self.testbed.init_mail_stub()
+        self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
+
+    def _getOUT(self, user):
+        from netprintbox.service import DropboxService
+
+        class request(object):
+            host = 'foobar'
+        return DropboxService(user, request)
+
+    @attr('unit', 'light')
+    def test_not_found(self):
+        from dropbox.rest import ErrorResponse
+
+        class client(object):
+            @staticmethod
+            def metadata(path):
+                class http_resp(object):
+                    status = 404
+                    reason = 'Not Found'
+
+                    @staticmethod
+                    def read():
+                        return ''
+                raise ErrorResponse(http_resp)
+
+        user = create_user()
+        service = self._getOUT(user)
+        service.client = client
+        with self.assertRaises(ErrorResponse):
+            service.list('/')
+        sent_messages = self.mail_stub.get_sent_messages(to=user.email)
+        self.assertEqual(len(sent_messages), 0)
