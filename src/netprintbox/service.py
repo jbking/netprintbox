@@ -194,8 +194,10 @@ class NetprintboxService(object):
                           self.user.email,
                           self.user.uid)
             template = load_template('report.html')
-            self.dropbox.put(settings.REPORT_PATH,
-                     StringIO(template.substitute(item_list=item_list)))
+            rendered_data = template.substitute(
+                    item_list=item_list,
+                    host=self.request.host)
+            self.dropbox.put(settings.REPORT_PATH, StringIO(rendered_data))
         else:
             logging.debug('No need to make a report for %s(%s)',
                           self.user.email,
