@@ -34,7 +34,7 @@ from dropbox.rest import ErrorResponse
 import settings
 
 from netprint import Client as NetprintClient
-from netprintbox.utils import load_template
+from netprintbox.utils import load_template, get_namespace
 from netprintbox.exceptions import (
         OverLimit, PendingUser, BecomePendingUser,
         DropboxBadRequest, DropboxForbidden,
@@ -142,13 +142,16 @@ class NetprintboxService(object):
         key = str(self.user.key())
         for item in self.netprint.list():
             md5.update(item.id)
+        namespace = get_namespace()
         digest = md5.hexdigest()
+        previous_digest = memcache.get(key,
+                          namespace=namespace)
         logging.debug('Generated digest is %s, and cached is %s',
                       digest,
-                      memcache.get(key))
-        changed = digest != memcache.get(key)
+                      previous_digest)
+        changed = digest != previous_digest
         if update_hash and changed:
-            memcache.set(key, digest)
+            memcache.set(key, digest, namespace=namespace)
         return changed
 
     def _make_report(self):

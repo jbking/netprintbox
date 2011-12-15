@@ -1,4 +1,6 @@
+import os
 from unittest import TestCase
+
 from nose.plugins.attrib import attr
 
 from test_utils import create_user, create_file_info, create_netprint_item
@@ -29,24 +31,24 @@ class NetprintboxServiceTest(ServiceTestBase):
         from google.appengine.api import memcache
         import settings
         from netprintbox.data import FileState
-        from netprintbox.utils import normalize_name as normalize
+        from netprintbox.utils import normalize_name
 
         user = create_user()
         f1_path = '/need_netprint_id.data'
         f1 = create_file_info(user,
                               path=f1_path,
-                              netprint_name=normalize(f1_path),
+                              netprint_name=normalize_name(f1_path),
                               state=FileState.NEED_NETPRINT_ID)
         f2_path = '/lost_by_something.data'
         f2 = create_file_info(user,
                               path=f2_path,
-                              netprint_name=normalize(f2_path),
+                              netprint_name=normalize_name(f2_path),
                               state=FileState.LATEST)
         f3_path = '/latest.data'
         f3 = create_file_info(user,
                               path=f3_path,
                               netprint_id='latest',
-                              netprint_name=normalize(f3_path),
+                              netprint_name=normalize_name(f3_path),
                               state=FileState.LATEST)
 
         class netprint(object):
@@ -58,7 +60,7 @@ class NetprintboxServiceTest(ServiceTestBase):
                             name='uncontrolled.jpg'),
                         create_netprint_item(
                             id='latest',
-                            name=normalize('/latest.data')),
+                            name=normalize_name('/latest.data')),
                        ]
 
         put_result = []
@@ -106,11 +108,12 @@ class NetprintboxServiceTest(ServiceTestBase):
         import hashlib
         from google.appengine.api import memcache
         from netprintbox.data import FileState
-        from netprintbox.utils import normalize_name as normalize
+        from netprintbox.utils import (
+            normalize_name, get_namespace)
 
         NETPRINT_ID = 'latest'
         ORIGINAL_PATH = '/latest.data'
-        NETPRINT_NAME = normalize(ORIGINAL_PATH)
+        NETPRINT_NAME = normalize_name(ORIGINAL_PATH)
 
         user = create_user()
         create_file_info(user,
@@ -130,7 +133,8 @@ class NetprintboxServiceTest(ServiceTestBase):
 
         md5 = hashlib.new('md5')
         md5.update(NETPRINT_ID)
-        memcache.set(str(user.key()), md5.hexdigest())
+        memcache.set(str(user.key()), md5.hexdigest(),
+                     namespace=get_namespace())
 
         service = self._getOUT(user.key())
         service.netprint = netprint

@@ -15,11 +15,13 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-
 import logging
+
 from google.appengine.ext import db
 from google.appengine.api import memcache
 from oauth.oauth import OAuthToken
+
+from netprintbox.utils import get_namespace
 
 
 class DropboxUser(db.Model):
@@ -55,15 +57,19 @@ class OAuthRequestToken(object):
     @staticmethod
     def get(key):
         logging.debug(u"Getting token by key: %s", key)
-        return OAuthToken.from_string(memcache.get(key))
+        return OAuthToken.from_string(
+                memcache.get(key,
+                             namespace=get_namespace()))
 
     def put(self):
         if self.key is None or self.token is None:
             raise ValueError
         logging.debug(u"Saving token: %s", self.token)
-        memcache.set(self.key, str(self.token))
+        memcache.set(self.key, str(self.token),
+                     namespace=get_namespace())
 
     @staticmethod
     def delete(key):
         logging.debug(u"Deleting token by key: %s", key)
-        memcache.delete(key)
+        memcache.delete(key,
+                        namespace=get_namespace())

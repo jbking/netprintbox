@@ -34,3 +34,7 @@ def normalize_name(path):
 
 def is_generated_file(path):
     return path in (settings.ACCOUNT_INFO_PATH, settings.REPORT_PATH)
+
+
+def get_namespace():
+    return os.environ.get('CURRENT_VERSION_ID')
