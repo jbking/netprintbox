@@ -75,7 +75,7 @@ class SyncWorker(webapp2.RequestHandler):
     def post(self):
         user_key = self.request.get('key')
         with handling_task_exception(user_key):
-            service = NetprintboxService(user_key)
+            service = NetprintboxService(user_key, request=self.request)
             service.sync()
             taskqueue.add(url='/task/make_report', params={'key': user_key},
                           countdown=random.randint(0, SLEEP_WAIT))
@@ -85,7 +85,7 @@ class MakeReportHandler(webapp2.RequestHandler):
     def post(self):
         user_key = self.request.get('key')
         with handling_task_exception(user_key):
-            service = NetprintboxService(user_key)
+            service = NetprintboxService(user_key, request=self.request)
             service.make_report()
 
 
@@ -97,7 +97,7 @@ class SetupGuide(webapp2.RequestHandler):
             raise exc.HTTPUnauthorized
 
         user = q.get()
-        service = NetprintboxService(user)
+        service = NetprintboxService(user, request=self.request)
 
         if user.pending:
             self.need_reauthorize()

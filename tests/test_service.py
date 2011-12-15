@@ -5,6 +5,8 @@ from test_utils import create_user, create_file_info, create_netprint_item
 
 
 class ServiceTestBase(TestCase):
+    maxDiff = None
+
     def setUp(self):
         from google.appengine.ext.testbed import Testbed
 
@@ -18,33 +20,39 @@ class ServiceTestBase(TestCase):
 
 
 class NetprintboxServiceTest(ServiceTestBase):
-    def _getOUT(self, user):
+    def _getOUT(self, user, request=None):
         from netprintbox.service import NetprintboxService
-        return NetprintboxService(user)
+        return NetprintboxService(user, request=request)
 
     @attr('unit', 'light')
-    def test_construct_data_to_make_report(self):
+    def test_make_report(self):
+        from google.appengine.api import memcache
+        import settings
         from netprintbox.data import FileState
         from netprintbox.utils import normalize_name as normalize
 
         user = create_user()
-        create_file_info(user,
-                         path='/need_netprint_id.data',
-                         netprint_name=normalize('/need_netprint_id.data'),
-                         state=FileState.NEED_NETPRINT_ID)
-        create_file_info(user,
-                         path='/latest.data',
-                         netprint_id='latest',
-                         netprint_name=normalize('/latest.data'),
-                         state=FileState.LATEST)
+        f1_path = '/need_netprint_id.data'
+        f1 = create_file_info(user,
+                              path=f1_path,
+                              netprint_name=normalize(f1_path),
+                              state=FileState.NEED_NETPRINT_ID)
+        f2_path = '/lost_by_something.data'
+        f2 = create_file_info(user,
+                              path=f2_path,
+                              netprint_name=normalize(f2_path),
+                              state=FileState.LATEST)
+        f3_path = '/latest.data'
+        f3 = create_file_info(user,
+                              path=f3_path,
+                              netprint_id='latest',
+                              netprint_name=normalize(f3_path),
+                              state=FileState.LATEST)
 
         class netprint(object):
             @staticmethod
             def list():
                 return [
-                        create_netprint_item(
-                            id='need_xxxx',
-                            name=normalize('/need_netprint_id.data')),
                         create_netprint_item(
                             id='uncontrolled',
                             name='uncontrolled.jpg'),
@@ -53,18 +61,45 @@ class NetprintboxServiceTest(ServiceTestBase):
                             name=normalize('/latest.data')),
                        ]
 
-        service = self._getOUT(user)
+        put_result = []
+
+        class dropbox(object):
+            @staticmethod
+            def put(path, file_obj):
+                put_result.append((path, file_obj))
+
+        class request(object):
+            host = 'localhost'
+
+        service = self._getOUT(user, request=request)
         service.netprint = netprint
+        service.dropbox = dropbox
 
         (need_report, result) = service._make_report()
         self.assertTrue(need_report)
         self.assertItemsEqual(
-            [(item['id'], item['name'], item['controlled'])
-             for item in result],
-            [('need_xxxx', normalize('/need_netprint_id.data'), True),
-             ('uncontrolled', 'uncontrolled.jpg', False),
-             ('latest', normalize('/latest.data'), True),
+            [(item['id'], item['name'], item['controlled'],
+              item['last_modified']) for item in result],
+            [('FAKE:WAIT', f1.netprint_name, True,
+              f1.last_modified.strftime(settings.DATETIME_FORMAT)),
+             ('FAKE:ERROR', f2.netprint_name, True,
+              f2.last_modified.strftime(settings.DATETIME_FORMAT)),
+             ('uncontrolled', 'uncontrolled.jpg', False, None),
+             ('latest', f3.netprint_name, True,
+              f3.last_modified.strftime(settings.DATETIME_FORMAT)),
             ])
+
+        # flush side-effect of above.
+        memcache.flush_all()
+
+        service.make_report()
+        self.assertEqual(len(put_result), 1)
+        self.assertEqual(put_result[0][0], settings.REPORT_PATH)
+        report_data = put_result[0][1].read()
+        with open('report.html', 'wb') as f:
+            f.write(report_data)
+        self.assertRegexpMatches(report_data, 'latest')
+        self.assertRegexpMatches(report_data, 'uncontrolled')
 
     @attr('unit', 'light')
     def test_do_not_make_report_if_no_change(self):
@@ -102,6 +137,9 @@ class NetprintboxServiceTest(ServiceTestBase):
 
         (need_report, _result) = service._make_report()
         self.assertFalse(need_report)
+
+        # check no exception is occurred.
+        service.make_report()
 
 
 class DropboxServicePendingNotificationTest(ServiceTestBase):
