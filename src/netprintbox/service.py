@@ -167,19 +167,29 @@ class NetprintboxService(object):
                         file_info.state = FileState.LATEST
                         file_info.put()
                     item_dict['controlled'] = True
-                    item_dict['last_modified'] = file_info.last_modified
+                    item_dict['last_modified'] = file_info.last_modified\
+                            .strftime(settings.DATETIME_FORMAT)
                 else:
                     item_dict['controlled'] = False
+                    item_dict['last_modified'] = None
                 items[netprint_name] = item_dict
             for file_info in own_files:
                 netprint_name = file_info.netprint_name
                 if netprint_name not in items:
                     need_report = True
+                    if file_info.state == FileState.LATEST:
+                        fake_id = "FAKE:ERROR"
+                    else:
+                        fake_id = "FAKE:WAIT"
                     items[netprint_name] = {
                             'name': netprint_name,
-                            'id': "ERROR",
+                            'id': fake_id,
                             'controlled': True,
-                            'last_modified': file_info.last_modified,
+                            'valid_date': '-',
+                            'page_numbers': '-',
+                            'paper_size': '-',
+                            'last_modified': file_info.last_modified\
+                                    .strftime(settings.DATETIME_FORMAT),
                             }
 
             if not need_report:

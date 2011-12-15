@@ -2,30 +2,61 @@
 <html>
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
         <title>ネットプリントボックス ファイル一覧</title>
         <style>
-            <!--
-            li p span {
-                padding-left: 1em;
-            }
-            -->
+        <!--
+        body > dl > dt {
+            float: none;
+        }
+        body > dl > dd {
+            border-bottom: 1px #cccccc solid;
+        }
+        body > dl > dd:nth-last-of-type(1) {
+            border: none;
+        }
+        dl dd {
+            margin: 0;
+        }
+        dl dt {
+            float: left;
+            width: 6em;
+            font-weight: bold;
+        }
+        -->
         </style>
     </head>
     <body>
-        <ol>
+        <dl>
         {{for loop, item in looper(item_list)}}
-            <li>
-                <p>
-                    <span>{{item['name']}}</span>
-                    <span>{{item['id']}}</span>
-                    {{if item['controlled']}}
-                    <span>{{item['last_modified']}}</span>
+            <dt>{{item['name']}}</dt>
+            <dd>
+                <dl>
+                    <dt>予約番号</dt>
+                    {{if item['id'].startswith('FAKE')}}
+                        {{if item['id'] == 'FAKE:ERROR'}}
+                    <dd>エラー</dd>
+                        {{elif item['id'] == 'FAKE:WAIT'}}
+                    <dd>予約番号取得中</dd>
+                        {{endif}}
                     {{else}}
-                    <span>ネットプリントのみに登録されています</span>
+                    <dd>{{item['id']}}</dd>
                     {{endif}}
-                </p>
-            </li>
+                    <dt>登録日時</dt>
+                    {{if item['controlled']}}
+                    <dd>{{item['last_modified']}}</dd>
+                    {{else}}
+                    <dd>ネットプリントのみに登録されています</dd>
+                    {{endif}}
+                    <dt>有効期限</dt>
+                    <dd>{{item['valid_date']}}</dd>
+                    <dt>ページ数</dt>
+                    <dd>{{item['page_numbers']}}</dd>
+                    <dt>用紙サイズ</dt>
+                    <dd>{{item['paper_size']}}</dd>
+                </dl>
+            </dd>
         {{endfor}}
-        </ol>
+        </dl>
     </body>
 </html>
