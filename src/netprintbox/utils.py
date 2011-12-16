@@ -23,9 +23,10 @@ import tempita
 import settings
 
 
-def load_template(path):
+def load_template(path, namespace={}):
     return tempita.HTMLTemplate(
-            open(os.path.join(settings.TEMPLATE_PATH, path)).read())
+            open(os.path.join(settings.TEMPLATE_PATH, path)).read(),
+            namespace=namespace)
 
 
 def normalize_name(path):

@@ -2,62 +2,56 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"> 
+        <link rel="stylesheet" href="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.css" />
+        <script type="text/javascript" src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
+        <script type="text/javascript" src="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.js"></script>
         <title>ネットプリントボックス ファイル一覧</title>
-        <style>
-        <!--
-        body > dl > dt {
-            width: 100%;
-            float: none;
-        }
-        body > dl > dd {
-            border-bottom: 1px #cccccc solid;
-        }
-        body > dl > dd:nth-last-of-type(1) {
-            border: none;
-        }
-        dl dd {
-            margin: 0;
-        }
-        dl dt {
-            float: left;
-            width: 6em;
-            font-weight: bold;
-        }
-        -->
-        </style>
     </head>
     <body>
-        <dl>
-        {{for loop, item in looper(item_list)}}
-            <dt>{{item['name']}}</dt>
-            <dd>
-                <dl>
-                    <dt>予約番号</dt>
-                    {{if item['id'].startswith('FAKE')}}
-                        {{if item['id'] == 'FAKE:ERROR'}}
-                    <dd>エラー</dd>
-                        {{elif item['id'] == 'FAKE:WAIT'}}
-                    <dd>予約番号取得中</dd>
-                        {{endif}}
-                    {{else}}
-                    <dd>{{item['id']}}</dd>
-                    {{endif}}
-                    <dt>登録日時</dt>
-                    {{if item['controlled']}}
-                    <dd>{{item['last_modified']}}</dd>
-                    {{else}}
-                    <dd>ネットプリントのみに登録されています</dd>
-                    {{endif}}
-                    <dt>有効期限</dt>
-                    <dd>{{item['valid_date']}}</dd>
-                    <dt>ページ数</dt>
-                    <dd>{{item['page_numbers']}}</dd>
-                    <dt>用紙サイズ</dt>
-                    <dd>{{item['paper_size']}}</dd>
-                </dl>
-            </dd>
-        {{endfor}}
-        </dl>
+        <div data-role="page">
+            <div data-role="header">
+                <h1>ファイル一覧</h1>
+            </div>
+            <div data-role="content">
+                <ul data-role="listview" data-inset="false">
+{{for date, items in categorize_by('valid_date', item_list, reverse=True).items()}}
+{{if date is None}}
+                    <li data-role="list-divider">未設定</li>
+{{else}}
+                    <li data-role="list-divider">{{date}}まで</li>
+{{endif}}
+{{for item in items}}
+                    <li><h3>{{item['name']}}</h3>
+                        <dl>
+                            <dt>予約番号</dt>
+{{if item['id'].startswith('FAKE')}}
+    {{if item['id'] == 'FAKE:ERROR'}}
+                            <dd>エラー</dd>
+    {{elif item['id'] == 'FAKE:WAIT'}}
+                            <dd>予約番号取得中</dd>
+    {{endif}}
+{{else}}
+                            <dd>{{item['id']}}</dd>
+{{endif}}
+                            <dt>登録日時</dt>
+{{if item['controlled']}}
+                            <dd>{{item['last_modified']}}</dd>
+{{else}}
+                            <dd>ネットプリントのみに登録されています</dd>
+{{endif}}
+                            <dt>有効期限</dt>
+                            <dd>{{item['valid_date']}}</dd>
+                            <dt>ページ数</dt>
+                            <dd>{{item['page_numbers']}}</dd>
+                            <dt>用紙サイズ</dt>
+                            <dd>{{item['paper_size']}}</dd>
+                        </dl>
+                    </li>
+{{endfor}}
+{{endfor}}
+                </ul>
+            </div>
+        </div>
     </body>
 </html>

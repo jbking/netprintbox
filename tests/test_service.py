@@ -1,4 +1,3 @@
-import os
 from unittest import TestCase
 
 from nose.plugins.attrib import attr
@@ -98,8 +97,9 @@ class NetprintboxServiceTest(ServiceTestBase):
         self.assertEqual(len(put_result), 1)
         self.assertEqual(put_result[0][0], settings.REPORT_PATH)
         report_data = put_result[0][1].read()
-        with open('report.html', 'wb') as f:
-            f.write(report_data)
+        if False:
+            with open('report.html', 'wb') as f:
+                f.write(report_data)
         self.assertRegexpMatches(report_data, 'latest')
         self.assertRegexpMatches(report_data, 'uncontrolled')
 
