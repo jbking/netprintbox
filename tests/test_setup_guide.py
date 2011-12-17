@@ -144,7 +144,7 @@ class SetupGuidePendingTest(TestCase):
 
         user = create_user()
         with self.assertRaises(BecomePendingUser):
-            user.make_pending(notify=False)
+            user.put_pending(notify=False)
         response = app.get_response('/guide/setup?key=%s' % user.access_key)
         self.assertEqual(response.status_int, 302)
         self.assertEqual(response.location, self.url)

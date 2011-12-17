@@ -43,7 +43,11 @@ class DropboxUser(db.Model):
     def is_pending(self):
         return self.pending
 
-    def make_pending(self, notify=True):
+    def put_pending_away(self):
+        self.pending = False
+        self.put()
+
+    def put_pending(self, notify=True):
         self.pending = True
         self.put()
         logging.exception("User becomes pending: %s", self.key())

@@ -244,7 +244,7 @@ def handle_error_response(func):
             if status == 400:
                 exc_type = DropboxBadRequest
             elif status == 401:
-                self.user.make_pending()
+                self.user.put_pending()
             elif status == 403:
                 exc_type = DropboxForbidden
             elif status == 404:

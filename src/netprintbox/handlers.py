@@ -75,7 +75,7 @@ def handling_task_exception(user_key):
         logging.exception('user_key: %s', user_key)
     except:
         user = DropboxUser.get(user_key)
-        user.make_pending()
+        user.put_pending()
 
 
 class SyncWorker(webapp2.RequestHandler):

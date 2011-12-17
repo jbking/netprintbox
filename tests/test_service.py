@@ -286,7 +286,7 @@ class DropboxServiceSetupTest(DropboxStaticTestBase):
 
         user = create_user()
         with self.assertRaises(BecomePendingUser):
-            user.make_pending(notify=False)
+            user.put_pending(notify=False)
 
         service = self._getOUT()
         service.setup_user(self.key)
