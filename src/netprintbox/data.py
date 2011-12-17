@@ -54,6 +54,10 @@ class OAuthRequestToken(object):
     key = None
     token = None
 
+    def __init__(self, key=None, token=None):
+        self.key = key
+        self.token = token
+
     @staticmethod
     def get(key):
         logging.debug(u"Getting token by key: %s", key)

@@ -1,6 +1,8 @@
 from unittest import TestCase
+from StringIO import StringIO
 
 from nose.plugins.attrib import attr
+from minimock import mock, restore
 
 from test_utils import create_user, create_file_info, create_netprint_item
 
@@ -18,6 +20,7 @@ class ServiceTestBase(TestCase):
 
     def tearDown(self):
         self.testbed.deactivate()
+        restore()
 
 
 class NetprintboxServiceTest(ServiceTestBase):
@@ -144,6 +147,167 @@ class NetprintboxServiceTest(ServiceTestBase):
 
         # check no exception is occurred.
         service.make_report()
+
+        from netprintbox.service import DropboxService
+
+        class request(object):
+            host = 'foobar'
+        return DropboxService(user, request)
+
+
+class DropboxServiceObtainTest(ServiceTestBase):
+    def _getOUT(self, user):
+        from netprintbox.service import DropboxService
+        return DropboxService(user)
+
+    @attr('unit', 'light')
+    def test_it(self):
+        class client(object):
+            @staticmethod
+            def metadata(path):
+                return {'is_dir': False, 'bytes': 3}
+
+            @staticmethod
+            def get_file(path):
+                return StringIO('foo')
+
+        user = create_user()
+        service = self._getOUT(user)
+        service.client = client
+        file_obj = service.obtain('fake_path')
+        self.assertEqual(file_obj.name, 'fake_path')
+        self.assertEqual(file_obj.read(), 'foo')
+
+
+class DropboxServiceObtainLimitTest(ServiceTestBase):
+    def _getOUT(self, user):
+        from netprintbox.service import DropboxService
+        return DropboxService(user)
+
+    @attr('unit', 'light')
+    def test_it(self):
+        from netprintbox.exceptions import OverLimit
+
+        class client(object):
+            @staticmethod
+            def metadata(path):
+                return {'is_dir': False, 'bytes': 3}
+
+            @staticmethod
+            def get_file(path):
+                return StringIO('foo')
+
+        user = create_user()
+        service = self._getOUT(user)
+        service.client = client
+        with self.assertRaises(OverLimit):
+            service.obtain('fake_path', limit=2)
+
+
+class DropboxServiceBuildURLTest(ServiceTestBase):
+    url = 'fake_url'
+
+    def setUp(self):
+        super(DropboxServiceBuildURLTest, self).setUp()
+
+        class request_token(object):
+            key = 'key'
+
+            def __str__(self):
+                return 'token'
+
+        class session(object):
+            @staticmethod
+            def obtain_request_token():
+                return request_token()
+
+            @staticmethod
+            def build_authorize_url(request_token, url):
+                return self.url
+
+        import dropbox.session
+        mock('dropbox.session.DropboxSession', returns=session)
+
+    def _getOUT(self):
+        from netprintbox.service import DropboxService
+        return DropboxService
+
+    @attr('unit', 'light')
+    def test_it(self):
+        service = self._getOUT()
+        url = service.build_authorize_url('callback_url')
+        self.assertEqual(url, self.url)
+
+
+class DropboxServiceSetupTest(ServiceTestBase):
+    uid = 'uid'
+    key = 'key'
+
+    def setUp(self):
+        from netprintbox.data import OAuthRequestToken
+
+        super(DropboxServiceSetupTest, self).setUp()
+
+        token = 'oauth_token=token&oauth_token_secret=secret'
+        token = OAuthRequestToken(key=self.key, token=token)
+        token.put()
+
+        class client(object):
+            @staticmethod
+            def account_info():
+                return {'uid': self.uid,
+                        'email': 'email',
+                        'display_name': 'display_name',
+                        }
+
+        class session(object):
+            @staticmethod
+            def obtain_access_token(request_token):
+                pass
+
+            class token(object):
+                key = 'access_key'
+                secret = 'access_secret'
+
+        import dropbox.client
+        import dropbox.session
+        mock('dropbox.client.DropboxClient', returns=client)
+        mock('dropbox.session.DropboxSession', returns=session)
+
+    def _getOUT(self):
+        from netprintbox.service import DropboxService
+        return DropboxService
+
+    @attr('unit', 'light')
+    def test_new_user(self):
+        from netprintbox.data import DropboxUser
+
+        service = self._getOUT()
+        service.setup_user(self.key)
+
+        q = DropboxUser.all()
+        self.assertEqual(q.count(), 1)
+        user = q.get()
+        self.assertEqual(user.uid, self.uid)
+        self.assertEqual(user.access_key, 'access_key')
+        self.assertEqual(user.access_secret, 'access_secret')
+
+    @attr('unit', 'light')
+    def test_existing_user(self):
+        from netprintbox.data import DropboxUser
+
+        user = create_user()
+        user.pending = True
+        user.put()
+
+        service = self._getOUT()
+        service.setup_user(self.key)
+
+        q = DropboxUser.all()
+        self.assertEqual(q.count(), 1)
+        queried_user = q.get()
+        self.assertEqual(user.uid, queried_user.uid)
+        self.assertFalse(queried_user.pending)
 
 
 class DropboxServicePendingNotificationTest(ServiceTestBase):
