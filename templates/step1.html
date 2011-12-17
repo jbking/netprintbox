@@ -10,9 +10,10 @@
         {{if error}}
         <p class="error">ネットプリントユーザ情報が読み取れませんでした。</p>
         {{else}}
-        <p>アプリケーションのディレクトリにテキストファイルを配置しました。</p>
+        <p>"Dropboxディレクトリ/Apps/ネットプリント"ディレクトリを作成し、その中へaccount.iniを配置しました。</p>
         {{endif}}
-        <p>ネットプリントのユーザ情報を入力してリンクをクリック。</p>
-        <p><a href="/guide/setup?key={{key}}">&gt;&gt;次へ</a></p>
+        <p>account.iniにネットプリントのID/パスワードを記入してください。</p>
+        <p>ネットプリントのユーザ情報を正しく入力したら、リンクをクリック。</p>
+        <p class="next_link"><a href="/guide/setup?key={{key}}">&gt;&gt;次へ</a></p>
     </body>
 </html>
