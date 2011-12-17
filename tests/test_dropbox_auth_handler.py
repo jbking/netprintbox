@@ -2,7 +2,7 @@ from unittest import TestCase
 from urlparse import urlparse
 
 from nose.plugins.attrib import attr
-from minimock import mock, Mock, restore
+from minimock import mock, restore
 
 from test_utils import create_user
 
@@ -23,6 +23,7 @@ class AuthorizeHandlerTest(TestCase):
              returns=self.url)
 
     def tearDown(self):
+        self.testbed.deactivate()
         restore()
 
     def _getAUT(self):
@@ -55,6 +56,7 @@ class AuthorizeCallbackHandlerTest(TestCase):
              returns=self.user)
 
     def tearDown(self):
+        self.testbed.deactivate()
         restore()
 
     def _getAUT(self):
