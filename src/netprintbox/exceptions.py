@@ -70,3 +70,7 @@ class PendingUser(Exception):
 
 class BecomePendingUser(PendingUser):
     pass
+
+
+class InvalidNetprintAccountInfo(ValueError):
+    pass

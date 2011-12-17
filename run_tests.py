@@ -5,6 +5,7 @@ from nose.core import run_exit
 
 
 if __name__ == '__main__':
+    os.environ['HTTP_HOST'] = 'testhost.testdomain'
     sys.path.insert(0, '/usr/local/google_appengine')
     import dev_appserver
     dev_appserver.fix_sys_path()
