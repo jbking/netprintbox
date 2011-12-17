@@ -99,6 +99,7 @@ class MakeReportHandler(webapp2.RequestHandler):
 class SetupGuide(webapp2.RequestHandler):
     def get(self):
         from netprintbox.service import NetprintboxService
+        from netprintbox.exceptions import DropboxNotFound
 
         key = self.request.GET['key']
         q = DropboxUser.all().filter('access_key = ', key)
@@ -115,7 +116,7 @@ class SetupGuide(webapp2.RequestHandler):
         try:
             info = service.dropbox.list(settings.ACCOUNT_INFO_PATH)
             need_to_create_account_info = info.get('is_deleted', False)
-        except dropbox.rest.ErrorResponse:
+        except DropboxNotFound:
             need_to_create_account_info = True
         if need_to_create_account_info:
             service.dropbox.put(settings.ACCOUNT_INFO_PATH, StringIO(
@@ -127,7 +128,7 @@ class SetupGuide(webapp2.RequestHandler):
 
         try:
             service.load_netprint_account_info()
-        except (dropbox.rest.ErrorResponse, ValueError):
+        except (DropboxNotFound, ValueError):
             self.step1(key, error=True)
         else:
             user = q.get()
