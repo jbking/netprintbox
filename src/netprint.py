@@ -11,25 +11,24 @@ __version__ = "0.1"
 __email__ = "yusuke@jbking.org"
 
 
+from collections import namedtuple
+import mimetypes
 import os
+import random
+from StringIO import StringIO
 import time
 from urllib import urlencode
-from collections import namedtuple
-from StringIO import StringIO
 
 from BeautifulSoup import BeautifulSoup
 import httplib2
 
-from utils import is_multipart, encode_multipart_data
+
+header_row = [u"ファイル名", u"プリント", u"予約番号",
+              u"ファイル", u"サイズ", u"用　紙", u"サイズ",
+              u"ページ", u"有効期限"]
 
 
-header_row = [unicode(s, 'utf8') for s in
-              ("ファイル名", "プリント", "予約番号",
-               "ファイル", "サイズ", "用　紙", "サイズ",
-               "ページ", "有効期限")]
-
-
-# const #######################################
+# enums #######################################
 class PaperSize:
     A4, A3, B4, B5, L = range(5)
 
@@ -58,12 +57,14 @@ class NeedNotification:
 FORMENCODE_HEADERS = {
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     "Accept-Language": "ja",
-    "Accept-Charset": "utf-8"}
+    "Accept-Charset": "utf-8",
+}
 
 
 MULTIPART_HEADERS = {
     "Content-Type": 'multipart/form-data; boundary=',
-    "Accept-Language": "ja"}
+    "Accept-Language": "ja",
+}
 
 
 # exceptions ##################################
@@ -81,6 +82,53 @@ class UnexpectedContent(ValueError):
     Because the session key of current session might be expired.
     Otherwise the content of the target site may be changed.
     """
+###############################################
+
+
+# utilities ###################################
+def is_file_like(obj):
+    return (getattr(obj, 'read', None) is not None
+        and getattr(obj, 'name', None) is not None)
+
+
+def is_multipart(data):
+    for obj in data.values():
+        if is_file_like(obj):
+            return True
+    else:
+        return False
+
+
+def encode_multipart_data(data):
+    getRandomChar = lambda: chr(random.choice(range(97, 123)))
+    randomChar = [getRandomChar() for _ in xrange(20)]
+    boundary = "----------%s" % "".join(randomChar)
+    lines = ["--" + boundary]
+    for key, value in data.iteritems():
+        header = 'Content-Disposition: form-data; name="%s"' % key
+        if is_file_like(value):
+            header += '; filename="%s"' % value.name
+            lines.append(header)
+            mtypes = mimetypes.guess_type(value.name)
+            if mtypes:
+                contentType = mtypes[0]
+                header = "Content-Type: %s" % contentType
+                lines.append(header)
+            lines.append("Content-Transfer-Encoding: binary")
+            data = value.read()
+        else:
+            lines.append(header)
+            if isinstance(value, unicode):
+                data = value.encode("utf-8")  # XXX
+            else:
+                data = str(value)
+
+        lines.append("")
+        lines.append(data)
+        lines.append("--" + boundary)
+    lines[-1] += "--"
+
+    return "\r\n".join(lines), boundary
 ###############################################
 
 
@@ -117,6 +165,7 @@ class Client(object):
         self.http_obj = http_obj
         self.user_agent = user_agent
         self._soup = None
+        self._encoding = None
 
     def _request(self, uri, method='GET', headers=None, body=None,
             status=(200, 304), **kwargs):
@@ -156,6 +205,7 @@ class Client(object):
             s = s.decode('utf-8')
         if isinstance(s, unicode):
             # to netprint encoding
+            assert self._encoding is not None
             s = s.encode(self._encoding, 'replace')
         return s
 
@@ -268,10 +318,8 @@ class Client(object):
         if isinstance(path_or_file, basestring):
             path = path_or_file
             f = file(path)
-        elif hasattr(path_or_file, 'read'):
+        elif is_file_like(path_or_file):
             f = path_or_file
-            if getattr(f, 'name', None) is None:
-                raise ValueError("file like object needs its name")
         else:
             raise ValueError("unknown value of path_or_file")
 
