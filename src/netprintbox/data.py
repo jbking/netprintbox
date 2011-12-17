@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 """
     Netprintbox
     Copyright (C) 2011  MURAOKA Yusuke <yusuke@jbking.org>
@@ -18,10 +19,13 @@
 import logging
 
 from google.appengine.ext import db
-from google.appengine.api import memcache
+from google.appengine.api import memcache, mail
 from oauth.oauth import OAuthToken
 
+import settings
 from netprintbox.utils import get_namespace
+from netprintbox.exceptions import BecomePendingUser
+from netprintbox.utils import load_template
 
 
 class DropboxUser(db.Model):
@@ -34,6 +38,24 @@ class DropboxUser(db.Model):
 
     def own_files(self):
         return DropboxFileInfo.all().ancestor(self)
+
+    @property
+    def is_pending(self):
+        return self.pending
+
+    def make_pending(self, notify=True):
+        self.pending = True
+        self.put()
+        logging.exception("User becomes pending: %s", self.key())
+        if notify:
+            mail.send_mail(to=self.email,
+                    subject=u'Dropbox連携の一時停止',
+                    sender=settings.SYSADMIN_ADDRESS,
+                    body=load_template('pending_notification.txt')\
+                            .substitute(
+                                host=settings.HOST_NAME,
+                                user_name=self.display_name))
+        raise BecomePendingUser
 
 
 class FileState(object):

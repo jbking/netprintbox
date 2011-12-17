@@ -15,13 +15,13 @@ class SetupGuideTest(TestCase):
         self.testbed.activate()
         self.testbed.init_datastore_v3_stub()
 
-        import dropbox.rest
+        from netprintbox.exceptions import DropboxNotFound
         # mockout
         import netprintbox.service
         import google.appengine.api.taskqueue
 
-        res = StringIO('body')
-        res.status = '400'
+        res = StringIO('')
+        res.status = 404
         res.reason = 'reason'
 
         class m1(object):
@@ -56,7 +56,7 @@ class SetupGuideTest(TestCase):
                        "Invalid state %r" % self.state
                 if self.state == 0:
                     self.state += 1
-                    raise dropbox.rest.ErrorResponse(res)
+                    raise DropboxNotFound
                 else:
                     self.state += 1
                     return {}
@@ -71,7 +71,7 @@ class SetupGuideTest(TestCase):
                        "Invalid state %r" % self.state
                 if self.state == 3:
                     self.state += 1
-                    raise dropbox.rest.ErrorResponse(res)
+                    raise DropboxNotFound
 
         mock('netprintbox.service.NetprintboxService',
              returns=service())
@@ -134,6 +134,8 @@ class SetupGuidePendingTest(TestCase):
 
     @attr('functional', 'light')
     def test_it(self):
+        from netprintbox.exceptions import BecomePendingUser
+
         app = self._getAUT()
 
         response = app.get_response('/guide/setup?key=key')
@@ -141,8 +143,8 @@ class SetupGuidePendingTest(TestCase):
                          "Unknown user can't into setup.")
 
         user = create_user()
-        user.pending = True
-        user.put()
+        with self.assertRaises(BecomePendingUser):
+            user.make_pending(notify=False)
         response = app.get_response('/guide/setup?key=%s' % user.access_key)
         self.assertEqual(response.status_int, 302)
         self.assertEqual(response.location, self.url)

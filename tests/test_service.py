@@ -24,9 +24,9 @@ class ServiceTestBase(TestCase):
 
 
 class NetprintboxServiceTest(ServiceTestBase):
-    def _getOUT(self, user, request=None):
+    def _getOUT(self, user):
         from netprintbox.service import NetprintboxService
-        return NetprintboxService(user, request=request)
+        return NetprintboxService(user)
 
     @attr('unit', 'light')
     def test_make_report(self):
@@ -72,10 +72,7 @@ class NetprintboxServiceTest(ServiceTestBase):
             def put(path, file_obj):
                 put_result.append((path, file_obj))
 
-        class request(object):
-            host = 'localhost'
-
-        service = self._getOUT(user, request=request)
+        service = self._getOUT(user)
         service.netprint = netprint
         service.dropbox = dropbox
 
@@ -148,18 +145,20 @@ class NetprintboxServiceTest(ServiceTestBase):
         # check no exception is occurred.
         service.make_report()
 
-        from netprintbox.service import DropboxService
 
-        class request(object):
-            host = 'foobar'
-        return DropboxService(user, request)
-
-
-class DropboxServiceObtainTest(ServiceTestBase):
+class DropboxTestBase(ServiceTestBase):
     def _getOUT(self, user):
         from netprintbox.service import DropboxService
         return DropboxService(user)
 
+
+class DropboxStaticTestBase(DropboxTestBase):
+    def _getOUT(self):
+        from netprintbox.service import DropboxService
+        return DropboxService
+
+
+class DropboxServiceObtainTest(DropboxTestBase):
     @attr('unit', 'light')
     def test_it(self):
         class client(object):
@@ -179,11 +178,7 @@ class DropboxServiceObtainTest(ServiceTestBase):
         self.assertEqual(file_obj.read(), 'foo')
 
 
-class DropboxServiceObtainLimitTest(ServiceTestBase):
-    def _getOUT(self, user):
-        from netprintbox.service import DropboxService
-        return DropboxService(user)
-
+class DropboxServiceObtainLimitTest(DropboxTestBase):
     @attr('unit', 'light')
     def test_it(self):
         from netprintbox.exceptions import OverLimit
@@ -204,7 +199,7 @@ class DropboxServiceObtainLimitTest(ServiceTestBase):
             service.obtain('fake_path', limit=2)
 
 
-class DropboxServiceBuildURLTest(ServiceTestBase):
+class DropboxServiceBuildURLTest(DropboxStaticTestBase):
     url = 'fake_url'
 
     def setUp(self):
@@ -228,10 +223,6 @@ class DropboxServiceBuildURLTest(ServiceTestBase):
         import dropbox.session
         mock('dropbox.session.DropboxSession', returns=session)
 
-    def _getOUT(self):
-        from netprintbox.service import DropboxService
-        return DropboxService
-
     @attr('unit', 'light')
     def test_it(self):
         service = self._getOUT()
@@ -239,7 +230,7 @@ class DropboxServiceBuildURLTest(ServiceTestBase):
         self.assertEqual(url, self.url)
 
 
-class DropboxServiceSetupTest(ServiceTestBase):
+class DropboxServiceSetupTest(DropboxStaticTestBase):
     uid = 'uid'
     key = 'key'
 
@@ -274,10 +265,6 @@ class DropboxServiceSetupTest(ServiceTestBase):
         mock('dropbox.client.DropboxClient', returns=client)
         mock('dropbox.session.DropboxSession', returns=session)
 
-    def _getOUT(self):
-        from netprintbox.service import DropboxService
-        return DropboxService
-
     @attr('unit', 'light')
     def test_new_user(self):
         from netprintbox.data import DropboxUser
@@ -295,10 +282,11 @@ class DropboxServiceSetupTest(ServiceTestBase):
     @attr('unit', 'light')
     def test_existing_user(self):
         from netprintbox.data import DropboxUser
+        from netprintbox.exceptions import BecomePendingUser
 
         user = create_user()
-        user.pending = True
-        user.put()
+        with self.assertRaises(BecomePendingUser):
+            user.make_pending(notify=False)
 
         service = self._getOUT()
         service.setup_user(self.key)
@@ -307,10 +295,10 @@ class DropboxServiceSetupTest(ServiceTestBase):
         self.assertEqual(q.count(), 1)
         queried_user = q.get()
         self.assertEqual(user.uid, queried_user.uid)
-        self.assertFalse(queried_user.pending)
+        self.assertFalse(queried_user.is_pending)
 
 
-class DropboxServicePendingNotificationTest(ServiceTestBase):
+class DropboxServicePendingNotificationTest(DropboxTestBase):
     def setUp(self):
         from google.appengine.ext import testbed
 
@@ -318,17 +306,10 @@ class DropboxServicePendingNotificationTest(ServiceTestBase):
         self.testbed.init_mail_stub()
         self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
 
-    def _getOUT(self, user):
-        from netprintbox.service import DropboxService
-
-        class request(object):
-            host = 'foobar'
-        return DropboxService(user, request)
-
     def _test_session_error(self, method_name, *args):
         from dropbox.rest import ErrorResponse
         from netprintbox.exceptions import BecomePendingUser
-        import settings
+        from settings import HOST_NAME, SYSADMIN_ADDRESS
 
         class FakeClient(object):
             def __getattr__(self, name):
@@ -344,18 +325,18 @@ class DropboxServicePendingNotificationTest(ServiceTestBase):
         user = create_user()
         service = self._getOUT(user)
         service.client = FakeClient()
-        try:
-            self.assertFalse(user.pending)
+
+        self.assertFalse(user.is_pending)
+        with self.assertRaises(BecomePendingUser):
             getattr(service, method_name)(*args)
-            self.fail("Don't become pending")
-        except BecomePendingUser:
-            self.assertTrue(user.pending)
-            sent_messages = self.mail_stub.get_sent_messages(to=user.email)
-            self.assertEqual(len(sent_messages), 1)
-            message = sent_messages[0]
-            message_body = str(message.body)
-            self.assertIn('http://foobar/dropbox/authorize', message_body)
-            self.assertIn(settings.SYSADMIN_ADDRESS, message.sender)
+        self.assertTrue(user.is_pending)
+        sent_messages = self.mail_stub.get_sent_messages(to=user.email)
+        self.assertEqual(len(sent_messages), 1)
+        message = sent_messages[0]
+        message_body = str(message.body)
+        self.assertIn('http://%s/dropbox/authorize' % HOST_NAME,
+                      message_body)
+        self.assertIn(SYSADMIN_ADDRESS, message.sender)
 
     @attr('unit', 'light')
     def test_list(self):
@@ -374,20 +355,13 @@ class DropboxServicePendingNotificationTest(ServiceTestBase):
         self._test_session_error('delete', '/')
 
 
-class DropboxServiceRecognizeErrorResponse(ServiceTestBase):
+class DropboxServiceRecognizeErrorResponse(DropboxTestBase):
     def setUp(self):
         from google.appengine.ext import testbed
 
         super(DropboxServiceRecognizeErrorResponse, self).setUp()
         self.testbed.init_mail_stub()
         self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
-
-    def _getOUT(self, user):
-        from netprintbox.service import DropboxService
-
-        class request(object):
-            host = 'foobar'
-        return DropboxService(user, request)
 
     def _test_metadata(self, expected_exception, status, reason,
                        how_many_messages=0):

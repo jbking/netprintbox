@@ -26,16 +26,14 @@ from ConfigParser import ConfigParser
 from collections import OrderedDict
 
 from google.appengine.ext import db
-from google.appengine.api import memcache, mail
+from google.appengine.api import memcache
 from httplib2 import Http
 from dropbox.rest import ErrorResponse
-
-import settings
 
 from netprint import Client as NetprintClient
 from netprintbox.utils import load_template, get_namespace
 from netprintbox.exceptions import (
-        OverLimit, PendingUser, BecomePendingUser,
+        OverLimit, PendingUser,
         DropboxBadRequest, DropboxForbidden,
         DropboxNotFound, DropboxMethodNotAllowed,
         DropboxServiceUnavailable, DropboxInsufficientStorage,
@@ -44,7 +42,9 @@ from netprintbox.exceptions import (
 from netprintbox.data import OAuthRequestToken, DropboxUser, FileState
 from netprintbox.transaction import SyncTransaction
 from dropbox_utils import traverse, ensure_binary_string
-from settings import DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_ACCESS_TYPE
+from settings import (
+        DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_ACCESS_TYPE,
+        HOST_NAME, USER_AGENT, ACCOUNT_INFO_PATH, REPORT_PATH, DATETIME_FORMAT)
 
 
 class NetprintService(object):
@@ -55,7 +55,7 @@ class NetprintService(object):
     @property
     def client(self):
         if getattr(self, '_client', None) is None:
-            self._client = NetprintClient(Http(), settings.USER_AGENT)
+            self._client = NetprintClient(Http(), USER_AGENT)
             self._client.login(self.username, self.password)
         return self._client
 
@@ -87,11 +87,10 @@ def categorize_by(key, item_list, reverse=False):
 
 
 class NetprintboxService(object):
-    def __init__(self, user, request=None):
+    def __init__(self, user):
         if isinstance(user, (basestring, db.Key)):
             user = DropboxUser.get(user)
         self.user = user
-        self.request = request
 
     @property
     def netprint(self):
@@ -107,14 +106,14 @@ class NetprintboxService(object):
     @property
     def dropbox(self):
         if getattr(self, '_dropbox', None) is None:
-            self._dropbox = DropboxService(self.user, self.request)
+            self._dropbox = DropboxService(self.user)
         return self._dropbox
 
     @dropbox.setter
     def dropbox(self, dropbox):
         self._dropbox = dropbox
 
-    def load_netprint_account_info(self, path=settings.ACCOUNT_INFO_PATH):
+    def load_netprint_account_info(self, path=ACCOUNT_INFO_PATH):
         config = ConfigParser()
         config.readfp(self.dropbox.obtain(path))
         username = config.get('netprint', 'username')
@@ -188,7 +187,7 @@ class NetprintboxService(object):
                         file_info.put()
                     item_dict['controlled'] = True
                     item_dict['last_modified'] = file_info.last_modified\
-                            .strftime(settings.DATETIME_FORMAT)
+                            .strftime(DATETIME_FORMAT)
                 else:
                     item_dict['controlled'] = False
                     item_dict['last_modified'] = None
@@ -209,7 +208,7 @@ class NetprintboxService(object):
                             'page_numbers': '-',
                             'paper_size': '-',
                             'last_modified': file_info.last_modified\
-                                    .strftime(settings.DATETIME_FORMAT),
+                                    .strftime(DATETIME_FORMAT),
                             }
 
             if not need_report:
@@ -227,8 +226,8 @@ class NetprintboxService(object):
                     namespace={'categorize_by': categorize_by})
             rendered_data = template.substitute(
                     item_list=item_list,
-                    host=self.request.host)
-            self.dropbox.put(settings.REPORT_PATH, StringIO(rendered_data))
+                    host=HOST_NAME)
+            self.dropbox.put(REPORT_PATH, StringIO(rendered_data))
         else:
             logging.debug('No need to make a report for %s(%s)',
                           self.user.email,
@@ -245,17 +244,7 @@ def handle_error_response(func):
             if status == 400:
                 exc_type = DropboxBadRequest
             elif status == 401:
-                self.user.pending = True
-                self.user.put()
-                logging.exception("User becomes pending: %s", self.user.key())
-                mail.send_mail(to=self.user.email,
-                        subject=u'Dropbox連携の一時停止',
-                        sender=settings.SYSADMIN_ADDRESS,
-                        body=load_template('pending_notification.txt')\
-                                .substitute(
-                                    host=self.host,
-                                    user_name=self.user.display_name))
-                raise BecomePendingUser
+                self.user.make_pending()
             elif status == 403:
                 exc_type = DropboxForbidden
             elif status == 404:
@@ -275,18 +264,17 @@ def handle_error_response(func):
 
 
 class DropboxService(object):
-    def __init__(self, user, request=None):
+    def __init__(self, user):
         if isinstance(user, (basestring, db.Key)):
             user = DropboxUser.get(user)
         self.user = user
-        self.request = request
 
     @property
     def client(self):
         from dropbox.client import DropboxClient
 
         if getattr(self, '_client', None) is None:
-            if self.user.pending:
+            if self.user.is_pending:
                 raise PendingUser(self.user)
             session = self.get_session()
             session.set_token(self.user.access_key, self.user.access_secret)
@@ -297,9 +285,6 @@ class DropboxService(object):
     def client(self, client):
         self._client = client
 
-    @property
-    def host(self):
-        return self.request.host if self.request else None
 
     @handle_error_response
     def list(self, path, recursive=True):
@@ -384,7 +369,7 @@ class DropboxService(object):
             user.display_name = account_info['display_name']
             user.access_key = session.token.key
             user.access_secret = session.token.secret
-            user.pending = False
+            user.pending = False  # XXX direct state change.
         user.put()
 
         OAuthRequestToken.delete(request_key)
