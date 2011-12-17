@@ -11,27 +11,24 @@ __version__ = "0.1"
 __email__ = "yusuke@jbking.org"
 
 
-import os
-import time
-import re
-import logging
-from urllib import urlencode
 from collections import namedtuple
+import mimetypes
+import os
+import random
 from StringIO import StringIO
+import time
+from urllib import urlencode
 
 from BeautifulSoup import BeautifulSoup
 import httplib2
 
-from utils import is_multipart, encode_multipart_data
+
+header_row = [u"ファイル名", u"プリント", u"予約番号",
+              u"ファイル", u"サイズ", u"用　紙", u"サイズ",
+              u"ページ", u"有効期限"]
 
 
-header_row = [unicode(s, 'utf8') for s in
-              ("ファイル名", "プリント", "予約番号",
-               "ファイル", "サイズ", "用　紙", "サイズ",
-               "ページ", "有効期限")]
-
-
-# const #######################################
+# enums #######################################
 class PaperSize:
     A4, A3, B4, B5, L = range(5)
 
@@ -60,12 +57,14 @@ class NeedNotification:
 FORMENCODE_HEADERS = {
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     "Accept-Language": "ja",
-    "Accept-Charset": "utf-8"}
+    "Accept-Charset": "utf-8",
+}
 
 
 MULTIPART_HEADERS = {
     "Content-Type": 'multipart/form-data; boundary=',
-    "Accept-Language": "ja"}
+    "Accept-Language": "ja",
+}
 
 
 # exceptions ##################################
@@ -83,6 +82,53 @@ class UnexpectedContent(ValueError):
     Because the session key of current session might be expired.
     Otherwise the content of the target site may be changed.
     """
+###############################################
+
+
+# utilities ###################################
+def is_file_like(obj):
+    return (getattr(obj, 'read', None) is not None
+        and getattr(obj, 'name', None) is not None)
+
+
+def is_multipart(data):
+    for obj in data.values():
+        if is_file_like(obj):
+            return True
+    else:
+        return False
+
+
+def encode_multipart_data(data):
+    getRandomChar = lambda: chr(random.choice(range(97, 123)))
+    randomChar = [getRandomChar() for _ in xrange(20)]
+    boundary = "----------%s" % "".join(randomChar)
+    lines = ["--" + boundary]
+    for key, value in data.iteritems():
+        header = 'Content-Disposition: form-data; name="%s"' % key
+        if is_file_like(value):
+            header += '; filename="%s"' % value.name
+            lines.append(header)
+            mtypes = mimetypes.guess_type(value.name)
+            if mtypes:
+                contentType = mtypes[0]
+                header = "Content-Type: %s" % contentType
+                lines.append(header)
+            lines.append("Content-Transfer-Encoding: binary")
+            data = value.read()
+        else:
+            lines.append(header)
+            if isinstance(value, unicode):
+                data = value.encode("utf-8")  # XXX
+            else:
+                data = str(value)
+
+        lines.append("")
+        lines.append(data)
+        lines.append("--" + boundary)
+    lines[-1] += "--"
+
+    return "\r\n".join(lines), boundary
 ###############################################
 
 
@@ -110,9 +156,7 @@ class DictCache(object):
 
 class Client(object):
 
-    url_prefix = 'https://www.printing.ne.jp'
-    login_url = url_prefix + '/login.html'
-    manage_url = url_prefix + '/cgi-bin/mn.cgi'
+    url = 'https://www.printing.ne.jp/cgi-bin/mn.cgi'
 
     def __init__(self, http_obj=None, user_agent=None):
         if http_obj is None:
@@ -121,6 +165,7 @@ class Client(object):
         self.http_obj = http_obj
         self.user_agent = user_agent
         self._soup = None
+        self._encoding = None
 
     def _request(self, uri, method='GET', headers=None, body=None,
             status=(200, 304), **kwargs):
@@ -160,6 +205,7 @@ class Client(object):
             s = s.decode('utf-8')
         if isinstance(s, unicode):
             # to netprint encoding
+            assert self._encoding is not None
             s = s.encode(self._encoding, 'replace')
         return s
 
@@ -167,38 +213,25 @@ class Client(object):
         """
         Login to the Net print service.
         """
-        for _ in range(retry):
-            try:
-                (_, content) = self._request(self.login_url)
+        try:
+            (_, content) = self._request(self.url,
+                    method='POST',
+                    body={'i': username, 'p': password})
 
-                soup = BeautifulSoup(content)
-                form = soup.find('form')
-                assert form.find('input', attrs=dict(name='i')) is not None
-                assert form.find('input', attrs=dict(name='p')) is not None
+            soup = BeautifulSoup(content)
+            session_field = soup.find('input', attrs={'name': 's'})
+            assert session_field is not None
 
-                submit_url = form['action']
-                post_data = dict(i=username, p=password)
-                (_, content) = self._request(submit_url,
-                                             body=post_data)
-
-                soup = BeautifulSoup(content)
-                form = soup.find('form', attrs=dict(name='m1form'))
-                session_field = form.find('input', attrs=dict(name='s'))
-                assert session_field is not None
-
-                self.session_key = session_field['value']
-                break
-            except:
-                logging.exception("login failed")
-        else:
-            raise LoginFailure("login failed")
+            self.session_key = session_field['value']
+        except:
+            raise LoginFailure("username or password is wrong.")
         self._soup = soup  # update soup.
         self._encoding = self._soup.originalEncoding
         self._check_displaying_main_page_then_trim()
 
     def go_home(self):
         (_, content) = self._request(
-                self.manage_url + '?s=' + self.session_key)
+                self.url + '?s=' + self.session_key)
         self._soup = BeautifulSoup(content)  # update soup.
         self._encoding = self._soup.originalEncoding
 
@@ -262,21 +295,7 @@ class Client(object):
             else:
                 id_set.add(i)
 
-        self.go_home()
-
-        (_, content) = self._request(self.manage_url, body={
-            'c': 0,  # unknown
-            's': self.session_key,
-            'fc': id_set,
-            'delete.x': 1,
-            'delete.y': 1})
-
-        soup = BeautifulSoup(content)
-        if (soup.find('input', attrs={'name': 'delexec'}) is None
-            or len(soup.findAll('form')) != 1):
-            raise UnexpectedContent
-
-        (_, content) = self._request(self.manage_url, body={
+        (_, content) = self._request(self.url, body={
             'c': 0,  # unknown
             's': self.session_key,
             'fc': id_set,
@@ -296,17 +315,15 @@ class Client(object):
         send a file to Netprint.
         """
 
-        f = None
         if isinstance(path_or_file, basestring):
             path = path_or_file
             f = file(path)
-        elif hasattr(path_or_file, 'read'):
+        elif is_file_like(path_or_file):
             f = path_or_file
-            if getattr(f, 'name', None) is None:
-                raise ValueError("file like object needs its name")
         else:
             raise ValueError("unknown value of path_or_file")
 
+        # wrap to set the name.
         name = self.ensure_encoding(os.path.split(f.name)[-1])
         f = StringIO(f.read())
         f.name = name
@@ -319,25 +336,7 @@ class Client(object):
         if need_notification == NeedNotification.Yes and mail_address is None:
             raise ValueError("need mail_address")
 
-        self.go_home()
-
-        new_file_list = self._soup(alt=re.compile(u'^新規ファイル'))
-        if len(new_file_list) != 1:
-            raise UnexpectedContent
-        link = new_file_list[0].parent['href']
-
-        (_, content) = self._request(self.url_prefix + link)
-        # XXX: Ignore invalid characters to
-        #      BeautifulSoup recognize the content correctly.
-        content = content.decode(self._encoding, 'replace')
-        soup = BeautifulSoup(content)
-
-        # Now must be on a file entry page
-        if not (soup.find(text=u'新規ファイルの登録') is not None
-                and len(soup.findAll('form')) == 2):
-            raise UnexpectedContent
-
-        self._request(self.url_prefix + link, body=dict(
+        self._request(self.url, body=dict(
             s=self.session_key,
             c=0,  # unknown
             m=2,  # unknown
@@ -348,6 +347,7 @@ class Client(object):
             number=reserversion_number,
             secretcodesw=need_secret,
             secretcode=secret_code or '',
+            duplextype=9,  # unknown
             magnification=need_margin,
             mailsw=need_notification,
             mailaddr=mail_address or ''))
