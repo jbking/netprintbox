@@ -33,12 +33,13 @@ from netprintbox.exceptions import (
         DropboxServiceUnavailable, DropboxServerError
 )
 from netprintbox.utils import load_template
-from netprintbox.service import DropboxService, NetprintboxService
 from settings import SLEEP_WAIT
 
 
 class AuthHandler(webapp2.RequestHandler):
     def get(self):
+        from netprintbox.service import DropboxService
+
         callback_url = 'http://%s/dropbox/callback' % self.request.host
         authz_url = DropboxService.build_authorize_url(callback_url)
         raise exc.HTTPFound(location=authz_url)
@@ -46,6 +47,8 @@ class AuthHandler(webapp2.RequestHandler):
 
 class AuthCallbackHandler(webapp2.RequestHandler):
     def get(self):
+        from netprintbox.service import DropboxService
+
         request_key = self.request.GET['oauth_token']
         user = DropboxService.setup_user(request_key)
         setup_url = '/guide/setup?key=%s' % user.access_key
@@ -73,6 +76,8 @@ def handling_task_exception(user_key):
 
 class SyncWorker(webapp2.RequestHandler):
     def post(self):
+        from netprintbox.service import NetprintboxService
+
         user_key = self.request.get('key')
         with handling_task_exception(user_key):
             service = NetprintboxService(user_key, request=self.request)
@@ -83,6 +88,8 @@ class SyncWorker(webapp2.RequestHandler):
 
 class MakeReportHandler(webapp2.RequestHandler):
     def post(self):
+        from netprintbox.service import NetprintboxService
+
         user_key = self.request.get('key')
         with handling_task_exception(user_key):
             service = NetprintboxService(user_key, request=self.request)
@@ -91,6 +98,8 @@ class MakeReportHandler(webapp2.RequestHandler):
 
 class SetupGuide(webapp2.RequestHandler):
     def get(self):
+        from netprintbox.service import NetprintboxService
+
         key = self.request.GET['key']
         q = DropboxUser.all().filter('access_key = ', key)
         if q.count() != 1:
@@ -126,6 +135,8 @@ class SetupGuide(webapp2.RequestHandler):
             self.step2()
 
     def need_reauthorize(self):
+        from netprintbox.service import DropboxService
+
         callback_url = 'http://%s/dropbox/authorize' % self.request.host
         authz_url = DropboxService.build_authorize_url(callback_url)
         raise exc.HTTPFound(location=authz_url)

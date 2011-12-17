@@ -2,7 +2,7 @@ import re
 from unittest import TestCase
 from StringIO import StringIO
 from nose.plugins.attrib import attr
-from minimock import mock, Mock, restore
+from minimock import mock, restore
 
 from test_utils import create_user
 
@@ -18,13 +18,7 @@ class SetupGuideTest(TestCase):
         import dropbox.rest
         # mockout
         import netprintbox.service
-        from google.appengine.api import taskqueue
-        mock('netprintbox.service.NetprintboxService')
-        mock('taskqueue.add')
-
-        NetprintService = netprintbox.service.NetprintboxService
-        NetprintService.mock_returns = service = Mock('NetprintService')
-        service.dropbox = Mock('DropboxService')
+        import google.appengine.api.taskqueue
 
         res = StringIO('body')
         res.status = '400'
@@ -50,10 +44,38 @@ class SetupGuideTest(TestCase):
                     self.state += 1
                     raise dropbox.rest.ErrorResponse(res)
 
-        service.dropbox.list = m1()
-        service.load_netprint_account_info = m2()
+        class service(object):
+            def __init__(self):
+                self.state = 0
+                self.dropbox = type('fake_dropbox', (), {})
+                self.dropbox.list = self._list
+                self.dropbox.put = self._put
 
-        taskqueue.add.mock_returns = Mock('taskqueue.add')
+            def _list(self, path):
+                assert self.state in (0, 2, 4), \
+                       "Invalid state %r" % self.state
+                if self.state == 0:
+                    self.state += 1
+                    raise dropbox.rest.ErrorResponse(res)
+                else:
+                    self.state += 1
+                    return {}
+
+            def _put(self, path, file_obj):
+                assert self.state in (1,), \
+                       "Invalid state %r" % self.state
+                self.state += 1
+
+            def load_netprint_account_info(self):
+                assert self.state in (3, 5), \
+                       "Invalid state %r" % self.state
+                if self.state == 3:
+                    self.state += 1
+                    raise dropbox.rest.ErrorResponse(res)
+
+        mock('netprintbox.service.NetprintboxService',
+             returns=service())
+        mock('google.appengine.api.taskqueue.add')
 
     def tearDown(self):
         self.testbed.deactivate()
@@ -64,7 +86,7 @@ class SetupGuideTest(TestCase):
         return app
 
     @attr('functional', 'light')
-    def test_guide(self):
+    def test_it(self):
         app = self._getAUT()
 
         response = app.get_response('/guide/setup?key=key')
@@ -85,3 +107,42 @@ class SetupGuideTest(TestCase):
         response = app.get_response('/guide/setup?key=%s' % user.access_key)
         self.assertEqual(response.status_int, 200)
         self.assertRegexpMatches(response.body, re.compile('step2'))
+
+
+class SetupGuidePendingTest(TestCase):
+    url = "http://fake.host/faked_url"
+
+    def setUp(self):
+        from google.appengine.ext.testbed import Testbed
+
+        self.testbed = Testbed()
+        self.testbed.activate()
+        self.testbed.init_datastore_v3_stub()
+
+        # mockout
+        import netprintbox.service
+        mock('netprintbox.service.DropboxService.build_authorize_url',
+             returns=self.url)
+
+    def tearDown(self):
+        self.testbed.deactivate()
+        restore()
+
+    def _getAUT(self):
+        from main import app
+        return app
+
+    @attr('functional', 'light')
+    def test_it(self):
+        app = self._getAUT()
+
+        response = app.get_response('/guide/setup?key=key')
+        self.assertEqual(response.status_int, 401,
+                         "Unknown user can't into setup.")
+
+        user = create_user()
+        user.pending = True
+        user.put()
+        response = app.get_response('/guide/setup?key=%s' % user.access_key)
+        self.assertEqual(response.status_int, 302)
+        self.assertEqual(response.location, self.url)

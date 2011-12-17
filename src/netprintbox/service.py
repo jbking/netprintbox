@@ -28,8 +28,6 @@ from collections import OrderedDict
 from google.appengine.ext import db
 from google.appengine.api import memcache, mail
 from httplib2 import Http
-from dropbox.client import DropboxClient
-from dropbox.session import DropboxSession
 from dropbox.rest import ErrorResponse
 
 import settings
@@ -285,6 +283,8 @@ class DropboxService(object):
 
     @property
     def client(self):
+        from dropbox.client import DropboxClient
+
         if getattr(self, '_client', None) is None:
             if self.user.pending:
                 raise PendingUser(self.user)
@@ -344,6 +344,8 @@ class DropboxService(object):
 
     @classmethod
     def get_session(cls):
+        from dropbox.session import DropboxSession
+
         return DropboxSession(DROPBOX_APP_KEY,
                               DROPBOX_APP_SECRET,
                               DROPBOX_ACCESS_TYPE)
@@ -352,14 +354,15 @@ class DropboxService(object):
     def build_authorize_url(cls, callback_url):
         session = cls.get_session()
         request_token = session.obtain_request_token()
-        token = OAuthRequestToken()
-        token.key = request_token.key
-        token.token = str(request_token)
+        token = OAuthRequestToken(key=request_token.key,
+                                  token=str(request_token))
         token.put()
         return session.build_authorize_url(request_token, callback_url)
 
     @classmethod
     def setup_user(cls, request_key):
+        from dropbox.client import DropboxClient
+
         request_token = OAuthRequestToken.get(request_key)
 
         session = cls.get_session()
