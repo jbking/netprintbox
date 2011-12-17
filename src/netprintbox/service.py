@@ -33,7 +33,7 @@ from dropbox.rest import ErrorResponse
 from netprint import Client as NetprintClient
 from netprintbox.utils import load_template, get_namespace
 from netprintbox.exceptions import (
-        OverLimit, PendingUser,
+        OverLimit, PendingUser, InvalidNetprintAccountInfo,
         DropboxBadRequest, DropboxForbidden,
         DropboxNotFound, DropboxMethodNotAllowed,
         DropboxServiceUnavailable, DropboxInsufficientStorage,
@@ -115,14 +115,15 @@ class NetprintboxService(object):
 
     def load_netprint_account_info(self, path=ACCOUNT_INFO_PATH):
         config = ConfigParser()
-        config.readfp(self.dropbox.obtain(path))
-        username = config.get('netprint', 'username')
-        password = config.get('netprint', 'password')
-        if username.strip() and password.strip():
-            return (username, password)
-        else:
-            # XXX Use customized Exception.
-            raise ValueError
+        try:
+            config.readfp(self.dropbox.obtain(path))
+            username = config.get('netprint', 'username')
+            password = config.get('netprint', 'password')
+            if username.strip() and password.strip():
+                return (username, password)
+        except:
+            pass
+        raise InvalidNetprintAccountInfo
 
     def sync(self):
         # XXX How we can handle the case that a file is removed on dropbox

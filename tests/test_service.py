@@ -145,6 +145,41 @@ class NetprintboxServiceTest(ServiceTestBase):
         # check no exception is occurred.
         service.make_report()
 
+    @attr('unit', 'light')
+    def test_load_netprint_account_info(self):
+        from settings import ACCOUNT_INFO_PATH
+
+        user = create_user()
+        service = self._getOUT(user)
+
+        class dropbox(object):
+            @staticmethod
+            def obtain(path):
+                self.assertEqual(path, ACCOUNT_INFO_PATH)
+                return StringIO('[netprint]\nusername=u\npassword=p')
+
+        service.dropbox = dropbox
+        self.assertEqual(service.load_netprint_account_info(),
+                         ('u', 'p'))
+
+    @attr('unit', 'light')
+    def test_load_netprint_account_info_invalid(self):
+        from settings import ACCOUNT_INFO_PATH
+        from netprintbox.exceptions import InvalidNetprintAccountInfo
+
+        user = create_user()
+        service = self._getOUT(user)
+
+        class dropbox(object):
+            @staticmethod
+            def obtain(path):
+                self.assertEqual(path, ACCOUNT_INFO_PATH)
+                return StringIO('[netprint]\nusername=\npassword=')
+
+        service.dropbox = dropbox
+        with self.assertRaises(InvalidNetprintAccountInfo):
+            service.load_netprint_account_info()
+
 
 class DropboxTestBase(ServiceTestBase):
     def _getOUT(self, user):

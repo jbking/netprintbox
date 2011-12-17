@@ -24,7 +24,6 @@ from StringIO import StringIO
 from google.appengine.api import taskqueue
 from webob import exc
 import webapp2
-import dropbox
 
 import settings
 from netprintbox.data import DropboxUser
@@ -103,7 +102,8 @@ class MakeReportHandler(webapp2.RequestHandler):
 class SetupGuide(webapp2.RequestHandler):
     def get(self):
         from netprintbox.service import NetprintboxService
-        from netprintbox.exceptions import DropboxNotFound
+        from netprintbox.exceptions import (
+                DropboxNotFound, InvalidNetprintAccountInfo)
 
         key = self.request.GET['key']
         q = DropboxUser.all().filter('access_key = ', key)
@@ -132,7 +132,7 @@ class SetupGuide(webapp2.RequestHandler):
 
         try:
             service.load_netprint_account_info()
-        except (DropboxNotFound, ValueError):
+        except (DropboxNotFound, InvalidNetprintAccountInfo):
             self.step1(key, error=True)
         else:
             user = q.get()
