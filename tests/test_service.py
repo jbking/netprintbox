@@ -180,6 +180,38 @@ class NetprintboxServiceTest(ServiceTestBase):
         with self.assertRaises(InvalidNetprintAccountInfo):
             service.load_netprint_account_info()
 
+    @attr('unit', 'light')
+    def test_transfer_from_dropbox(self):
+        user = create_user()
+        service = self._getOUT(user)
+
+        class dropbox(object):
+            @staticmethod
+            def obtain(path, limit=None):
+                return StringIO('fake')
+
+        result = []
+
+        def put(file_obj):
+            result.append(file_obj)
+
+        service.load_netprint_account_info = lambda: ('foo', 'bar')
+        service.dropbox = dropbox
+        service.netprint.put = put
+
+        service.transfer_from_dropbox('test.jpg')
+        self.assertEqual(result[0].read(), 'fake')
+
+    @attr('unit', 'light')
+    def test_transfer_from_dropbox_unknown_file_type(self):
+        from netprintbox.exceptions import UnsupportedFile
+        user = create_user()
+        service = self._getOUT(user)
+        service.load_netprint_account_info = lambda: ('foo', 'bar')
+
+        with self.assertRaises(UnsupportedFile):
+            service.transfer_from_dropbox('test.dat')
+
 
 class DropboxTestBase(ServiceTestBase):
     def _getOUT(self, user):

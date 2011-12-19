@@ -30,14 +30,17 @@ from google.appengine.api import memcache
 from httplib2 import Http
 from dropbox.rest import ErrorResponse
 
-from netprint import Client as NetprintClient
+from netprint import (
+        Client as NetprintClient,
+        get_sending_target, UnknownExtension)
 from netprintbox.utils import load_template, get_namespace
 from netprintbox.exceptions import (
         OverLimit, PendingUser, InvalidNetprintAccountInfo,
         DropboxBadRequest, DropboxForbidden,
         DropboxNotFound, DropboxMethodNotAllowed,
         DropboxServiceUnavailable, DropboxInsufficientStorage,
-        DropboxServerError
+        DropboxServerError,
+        UnsupportedFile
 )
 from netprintbox.data import OAuthRequestToken, DropboxUser, FileState
 from netprintbox.transaction import SyncTransaction
@@ -62,6 +65,14 @@ class NetprintService(object):
     @client.setter
     def client(self, client):
         self._client = client
+
+    @staticmethod
+    def is_supporting_file_type(file_name):
+        try:
+            get_sending_target(file_name)
+            return True
+        except UnknownExtension:
+            return False
 
     def list(self):
         return self.client.list()
@@ -144,6 +155,8 @@ class NetprintboxService(object):
             file_limit = 2 * 1024 * 1024
         if limit is None or limit > file_limit:
             limit = file_limit
+        if not self.netprint.is_supporting_file_type(path):
+            raise UnsupportedFile(path)
         file_obj = self.dropbox.obtain(path, limit=limit)
         self.netprint.put(file_obj)
 

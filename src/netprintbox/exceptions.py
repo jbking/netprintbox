@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 """
     Netprintbox
     Copyright (C) 2011  MURAOKA Yusuke <yusuke@jbking.org>
@@ -73,4 +74,7 @@ class BecomePendingUser(PendingUser):
 
 
 class InvalidNetprintAccountInfo(ValueError):
+    pass
+
+class UnsupportedFile(ValueError):
     pass
