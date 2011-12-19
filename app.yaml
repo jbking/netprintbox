@@ -6,12 +6,12 @@ threadsafe: yes
 
 handlers:
 - url: /task/.*
-  script: main.app
+  script: bootstrap.app
   login: admin
 - url: /static
   static_dir: static
 - url: /.*
-  script: main.app
+  script: bootstrap.app
 
 builtins:
 - admin_redirect: on

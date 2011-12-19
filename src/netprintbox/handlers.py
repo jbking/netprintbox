@@ -23,7 +23,7 @@ from StringIO import StringIO
 
 from google.appengine.api import taskqueue
 from webob import exc
-import webapp2
+import webapp2 as w
 
 import settings
 from netprintbox.data import DropboxUser
@@ -35,32 +35,32 @@ from netprintbox.utils import load_template
 from settings import SLEEP_WAIT
 
 
-class AuthHandler(webapp2.RequestHandler):
+class AuthHandler(w.RequestHandler):
     def get(self):
         from netprintbox.service import DropboxService
-        from settings import HOST_NAME
 
-        callback_url = 'http://%s/dropbox/callback' % HOST_NAME
+        callback_url = self.uri_for('authorize_callback', _full=True)
         authz_url = DropboxService.build_authorize_url(callback_url)
         raise exc.HTTPFound(location=authz_url)
 
 
-class AuthCallbackHandler(webapp2.RequestHandler):
+class AuthCallbackHandler(w.RequestHandler):
     def get(self):
         from netprintbox.service import DropboxService
 
         request_key = self.request.GET['oauth_token']
         user = DropboxService.setup_user(request_key)
-        setup_url = '/guide/setup?key=%s' % user.access_key
+        setup_url = self.uri_for('setup_guide', key=user.access_key)
         raise exc.HTTPFound(location=setup_url)
 
 
-class CronHandler(webapp2.RequestHandler):
+class CronHandler(w.RequestHandler):
     def get(self):
         for user in DropboxUser.all():
             if not user.is_pending:
                 # XXX check the need to sync?
-                taskqueue.add(url='/task/check', params={'key': user.key()},
+                taskqueue.add(url=self.uri_for('check_for_user'),
+                              params={'key': user.key()},
                               countdown=random.randint(0, SLEEP_WAIT))
 
 
@@ -77,7 +77,7 @@ def handling_task_exception(user_key):
         user.put_pending()
 
 
-class SyncWorker(webapp2.RequestHandler):
+class SyncWorker(w.RequestHandler):
     def post(self):
         from netprintbox.service import NetprintboxService
 
@@ -85,11 +85,12 @@ class SyncWorker(webapp2.RequestHandler):
         with handling_task_exception(user_key):
             service = NetprintboxService(user_key)
             service.sync()
-            taskqueue.add(url='/task/make_report', params={'key': user_key},
+            taskqueue.add(url=self.uri_for('make_report_for_user'),
+                          params={'key': user_key},
                           countdown=random.randint(0, SLEEP_WAIT))
 
 
-class MakeReportHandler(webapp2.RequestHandler):
+class MakeReportHandler(w.RequestHandler):
     def post(self):
         from netprintbox.service import NetprintboxService
 
@@ -99,7 +100,7 @@ class MakeReportHandler(webapp2.RequestHandler):
             service.make_report()
 
 
-class SetupGuide(webapp2.RequestHandler):
+class SetupGuide(w.RequestHandler):
     def get(self):
         from netprintbox.service import NetprintboxService
         from netprintbox.exceptions import (
@@ -136,14 +137,14 @@ class SetupGuide(webapp2.RequestHandler):
             self.step1(key, error=True)
         else:
             user = q.get()
-            taskqueue.add(url='/task/check', params={'key': user.key()})
+            taskqueue.add(url=self.uri_for('check_for_user'),
+                          params={'key': user.key()})
             self.step2()
 
     def need_reauthorize(self):
         from netprintbox.service import DropboxService
-        from settings import HOST_NAME
 
-        callback_url = 'http://%s/dropbox/authorize' % HOST_NAME
+        callback_url = self.uri_for('authorize', _full=True)
         authz_url = DropboxService.build_authorize_url(callback_url)
         raise exc.HTTPFound(location=authz_url)
 
@@ -163,7 +164,7 @@ class SetupGuide(webapp2.RequestHandler):
         raise response
 
 
-class TopHandler(webapp2.RequestHandler):
+class TopHandler(w.RequestHandler):
     def get(self):
         template = load_template('top.html')
         response = exc.HTTPOk()

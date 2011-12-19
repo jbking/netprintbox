@@ -1,10 +1,11 @@
 from unittest import TestCase
 from urlparse import urlparse
 
+from webapp2 import uri_for
 from nose.plugins.attrib import attr
 from minimock import mock, restore
 
-from test_utils import create_user
+from test_utils import (create_user, get_blank_request)
 
 
 class AuthorizeHandlerTest(TestCase):
@@ -27,13 +28,14 @@ class AuthorizeHandlerTest(TestCase):
         restore()
 
     def _getAUT(self):
-        from main import app
+        from netprintbox.main import app
         return app
 
     @attr('functional', 'light')
     def test_it(self):
         app = self._getAUT()
-        response = app.get_response('/dropbox/authorize')
+        request = get_blank_request()
+        response = app.get_response(uri_for('authorize', _request=request))
         self.assertEqual(response.status_int, 302)
         self.assertEqual(response.location, self.url)
 
@@ -60,15 +62,22 @@ class AuthorizeCallbackHandlerTest(TestCase):
         restore()
 
     def _getAUT(self):
-        from main import app
+        from netprintbox.main import app
         return app
 
     @attr('functional', 'light')
     def test_it(self):
         app = self._getAUT()
-        response = app.get_response('/dropbox/callback?oauth_token=hoge')
-        self.assertEqual(response.status_int, 302)
 
-        result = urlparse(response.location)
-        self.assertEqual(result.path, '/guide/setup')
-        self.assertEqual(result.query, 'key=%s' % self.user.access_key)
+        request = get_blank_request()
+        response = app.get_response(uri_for('authorize_callback',
+                                            _request=request,
+                                            oauth_token='hoge'))
+        self.assertEqual(response.status_int, 302)
+        parsed = urlparse(response.location)
+        actual_url = '%s?%s' % (parsed.path, parsed.query)
+
+        request = get_blank_request()
+        expected_url = uri_for('setup_guide', _request=request,
+                      key=self.user.access_key)
+        self.assertEqual(expected_url, actual_url)

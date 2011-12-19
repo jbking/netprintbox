@@ -4,7 +4,7 @@ from nose.plugins.attrib import attr
 
 class TopTest(TestCase):
     def _getAUT(self):
-        from main import app
+        from netprintbox.main import app
         return app
 
     @attr('functional', 'light')

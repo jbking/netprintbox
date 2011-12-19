@@ -4,7 +4,9 @@ from StringIO import StringIO
 from nose.plugins.attrib import attr
 from minimock import mock, restore
 
-from test_utils import create_user, create_file_info, create_netprint_item
+from test_utils import (
+        create_user, create_file_info, create_netprint_item,
+        get_blank_request, set_request_local)
 
 
 class ServiceTestBase(TestCase):
@@ -374,9 +376,10 @@ class DropboxServicePendingNotificationTest(DropboxTestBase):
         self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
 
     def _test_session_error(self, method_name, *args):
+        from webapp2 import uri_for
         from dropbox.rest import ErrorResponse
         from netprintbox.exceptions import BecomePendingUser
-        from settings import HOST_NAME, SYSADMIN_ADDRESS
+        from settings import SYSADMIN_ADDRESS
 
         class FakeClient(object):
             def __getattr__(self, name):
@@ -395,13 +398,16 @@ class DropboxServicePendingNotificationTest(DropboxTestBase):
 
         self.assertFalse(user.is_pending)
         with self.assertRaises(BecomePendingUser):
+            set_request_local()
             getattr(service, method_name)(*args)
         self.assertTrue(user.is_pending)
         sent_messages = self.mail_stub.get_sent_messages(to=user.email)
         self.assertEqual(len(sent_messages), 1)
         message = sent_messages[0]
         message_body = str(message.body)
-        self.assertIn('http://%s/dropbox/authorize' % HOST_NAME,
+
+        request = get_blank_request()
+        self.assertIn(uri_for('authorize', _request=request),
                       message_body)
         self.assertIn(SYSADMIN_ADDRESS, message.sender)
 
@@ -454,6 +460,7 @@ class DropboxServiceRecognizeErrorResponse(DropboxTestBase):
         service = self._getOUT(user)
         service.client = client(status, reason)
         with self.assertRaises(expected_exception):
+            set_request_local()
             service.list('/')
         sent_messages = self.mail_stub.get_sent_messages(to=user.email)
         self.assertEqual(len(sent_messages), how_many_messages)

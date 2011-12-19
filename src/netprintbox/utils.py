@@ -22,11 +22,15 @@ import os
 import tempita
 import settings
 
+from netprintbox.template_utils import get_namespace as get_template_namespace
+
 
 def load_template(path, namespace={}):
+    n = get_template_namespace()
+    n.update(namespace)
     return tempita.HTMLTemplate(
             open(os.path.join(settings.TEMPLATE_PATH, path)).read(),
-            namespace=namespace)
+            namespace=n)
 
 
 def normalize_name(path):

@@ -23,9 +23,10 @@ from google.appengine.api import memcache, mail
 from oauth.oauth import OAuthToken
 
 import settings
-from netprintbox.utils import get_namespace
+from netprintbox.utils import get_namespace, load_template
 from netprintbox.exceptions import BecomePendingUser
-from netprintbox.utils import load_template
+from netprintbox.template_utils import (
+        get_namespace as get_template_namespace,)
 
 
 class DropboxUser(db.Model):
@@ -52,13 +53,12 @@ class DropboxUser(db.Model):
         self.put()
         logging.exception("User becomes pending: %s", self.key())
         if notify:
+            template = load_template('pending_notification.txt',
+                                     namespace=get_template_namespace())
             mail.send_mail(to=self.email,
                     subject=u'Dropbox連携の一時停止',
                     sender=settings.SYSADMIN_ADDRESS,
-                    body=load_template('pending_notification.txt')\
-                            .substitute(
-                                host=settings.HOST_NAME,
-                                user_name=self.display_name))
+                    body=template.substitute(user_name=self.display_name))
         raise BecomePendingUser
 
 
