@@ -1,5 +1,6 @@
 # -*- encoding: utf8 -*-
 import os
+from StringIO import StringIO
 
 from unittest import TestCase
 from nose import SkipTest
@@ -83,6 +84,39 @@ class ClientTest(TestCase):
         client._encoding = 'euc-jp'
         self.assertEqual(client.ensure_encoding('テスト'),
                          u'テスト'.encode('euc-jp'))
+
+    def _test_switch_sending_url(self, file_name):
+        client = self._getOUT()
+        result = []
+
+        def fake(sending_url, **kwargs):
+            result.append(sending_url)
+
+        client._request = fake
+        client._encoding = 'euc-jp'
+        client.session_key = 'fake_session'
+        f = StringIO('fake data')
+        f.name = file_name
+        client.send(f)
+        return result
+
+    @attr('unit', 'light')
+    def test_switch_sending_url(self):
+        from netprint import SendingTarget
+        self.assertEqual([SendingTarget.NORMAL],
+                         self._test_switch_sending_url('an.jpg'))
+
+    @attr('unit', 'light')
+    def test_switch_sending_url_office(self):
+        from netprint import SendingTarget
+        self.assertEqual([SendingTarget.OFFICE],
+                         self._test_switch_sending_url('a.doc'))
+
+    @attr('unit', 'light')
+    def test_switch_sending_url_office(self):
+        from netprint import UnknownExtension
+        with self.assertRaises(UnknownExtension):
+            self._test_switch_sending_url('a.gif')
 
 
 class FunctionalClientTest(TestCase):

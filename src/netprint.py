@@ -51,6 +51,11 @@ class NeedMargin:
 
 class NeedNotification:
     No, Yes = range(2)
+
+
+class SendingTarget(object):
+    NORMAL = 'https://www.printing.ne.jp/cgi-bin/mn.cgi'
+    OFFICE = 'https://www2.printing.ne.jp/cgi-bin/mn.cgi'
 ###############################################
 
 
@@ -82,6 +87,10 @@ class UnexpectedContent(ValueError):
     Because the session key of current session might be expired.
     Otherwise the content of the target site may be changed.
     """
+
+
+class UnknownExtension(ValueError):
+    pass
 ###############################################
 
 
@@ -144,8 +153,7 @@ def get_sending_target(file_name):
     ・JPEG (拡張子「.jpg」「.jpe」、「.jpeg」)
     ・TIFF (拡張子「.tif」)
     ・PDF Ver1.3/1.4/1.5/1.6/1.7（拡張子「.pdf」）
-    """
-    """
+
         if(filename.match(/\.(docx|pptx|xlsx)$/i)){
             curfrm.action="https://www2.printing.ne.jp/cgi-bin/mn.cgi";
             curfrm.submit();
@@ -154,8 +162,15 @@ def get_sending_target(file_name):
             curfrm.submit();
         }
     """
-    raise NotImplementedError
-
+    ext = os.path.splitext(file_name)[1]
+    if ext in ('.docx', '.pptx', '.xlsx'):
+        return SendingTarget.OFFICE
+    elif ext in ('.doc', '.rtf', '.xls', '.ppt',
+                 '.xdw', '.jpg', '.jpe', '.jpeg',
+                 '.tif', '.pdf'):
+        return SendingTarget.NORMAL
+    else:
+        raise UnknownExtension("Unknown extension '%s'" % ext)
 ###############################################
 
 
@@ -363,7 +378,8 @@ class Client(object):
         if need_notification == NeedNotification.Yes and mail_address is None:
             raise ValueError("need mail_address")
 
-        self._request(self.url, body=dict(
+        sending_url = get_sending_target(f.name)
+        self._request(sending_url, body=dict(
             s=self.session_key,
             c=0,  # unknown
             m=2,  # unknown
