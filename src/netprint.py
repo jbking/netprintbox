@@ -129,6 +129,33 @@ def encode_multipart_data(data):
     lines[-1] += "--"
 
     return "\r\n".join(lines), boundary
+
+
+def get_sending_target(file_name):
+    """Returns the target host which the file should be sent.
+
+    Because there are hosts which are switched by file format."""
+    """
+    日本語Windows®上で使用する次のアプリケーションが対象です。Mac OSのアプリケーションには対応していません。
+    ・Microsoft® Word 97/98/2000/2002/2003/2007/2010 日本語（拡張子「.doc」「.docx」「.rtf」）
+    ・Microsoft® Excel 97/2000/2002/2003/2007/2010 日本語(拡張子「.xls」「.xlsx」)
+    ・Microsoft® PowerPoint® 97/2000/2002/2003/2007/2010 日本語(拡張子「.ppt」「.pptx」)
+    ・DocuWorks Ver.3.0以降 (拡張子「.xdw」)
+    ・JPEG (拡張子「.jpg」「.jpe」、「.jpeg」)
+    ・TIFF (拡張子「.tif」)
+    ・PDF Ver1.3/1.4/1.5/1.6/1.7（拡張子「.pdf」）
+    """
+    """
+        if(filename.match(/\.(docx|pptx|xlsx)$/i)){
+            curfrm.action="https://www2.printing.ne.jp/cgi-bin/mn.cgi";
+            curfrm.submit();
+        }else{
+            curfrm.action="https://www.printing.ne.jp/cgi-bin/mn.cgi";
+            curfrm.submit();
+        }
+    """
+    raise NotImplementedError
+
 ###############################################
 
 
