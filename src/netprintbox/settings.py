@@ -16,10 +16,11 @@ DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
 
 SLEEP_WAIT = 120
 
-TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'templates')
+PACKAGE_DIR = os.path.dirname(os.path.dirname(__file__))
+ROOT_DIR = os.path.dirname(PACKAGE_DIR)
+TEMPLATE_PATH = os.path.join(ROOT_DIR, 'templates')
 
 try:
-    exec file(os.path.join(os.path.dirname(__file__),
-                           'settings_local.py')).read()
+    exec file(os.path.join(PACKAGE_DIR, 'settings_local.py')).read()
 except IOError:
     pass

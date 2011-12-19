@@ -171,15 +171,14 @@ class SyncFeatureTest(TransactionTestBase):
 
     @attr('unit', 'light')
     def test_do_not_sync_generated_file(self):
-        import settings
+        from netprintbox.settings import ACCOUNT_INFO_PATH, REPORT_PATH
 
         class context(object):
             user = create_user()
 
         transaction = self._getOUT(context)
 
-        for ignore_path in (settings.ACCOUNT_INFO_PATH,
-                            settings.REPORT_PATH):
+        for ignore_path in (ACCOUNT_INFO_PATH, REPORT_PATH):
             transaction._dropbox_only(dict(path=ignore_path,
                                            bytes=0, rev='rev'))
         q = context.user.own_files()

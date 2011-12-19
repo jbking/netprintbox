@@ -33,7 +33,7 @@ class NetprintboxServiceTest(ServiceTestBase):
     @attr('unit', 'light')
     def test_make_report(self):
         from google.appengine.api import memcache
-        import settings
+        from netprintbox.settings import DATETIME_FORMAT, REPORT_PATH
         from netprintbox.data import FileState
         from netprintbox.utils import normalize_name
 
@@ -84,12 +84,12 @@ class NetprintboxServiceTest(ServiceTestBase):
             [(item['id'], item['name'], item['controlled'],
               item['last_modified']) for item in result],
             [('FAKE:WAIT', f1.netprint_name, True,
-              f1.last_modified.strftime(settings.DATETIME_FORMAT)),
+              f1.last_modified.strftime(DATETIME_FORMAT)),
              ('FAKE:ERROR', f2.netprint_name, True,
-              f2.last_modified.strftime(settings.DATETIME_FORMAT)),
+              f2.last_modified.strftime(DATETIME_FORMAT)),
              ('uncontrolled', 'uncontrolled.jpg', False, None),
              ('latest', f3.netprint_name, True,
-              f3.last_modified.strftime(settings.DATETIME_FORMAT)),
+              f3.last_modified.strftime(DATETIME_FORMAT)),
             ])
 
         # flush side-effect of above.
@@ -97,7 +97,7 @@ class NetprintboxServiceTest(ServiceTestBase):
 
         service.make_report()
         self.assertEqual(len(put_result), 1)
-        self.assertEqual(put_result[0][0], settings.REPORT_PATH)
+        self.assertEqual(put_result[0][0], REPORT_PATH)
         report_data = put_result[0][1].read()
         if False:
             with open('report.html', 'wb') as f:
@@ -149,7 +149,7 @@ class NetprintboxServiceTest(ServiceTestBase):
 
     @attr('unit', 'light')
     def test_load_netprint_account_info(self):
-        from settings import ACCOUNT_INFO_PATH
+        from netprintbox.settings import ACCOUNT_INFO_PATH
 
         user = create_user()
         service = self._getOUT(user)
@@ -166,7 +166,7 @@ class NetprintboxServiceTest(ServiceTestBase):
 
     @attr('unit', 'light')
     def test_load_netprint_account_info_invalid(self):
-        from settings import ACCOUNT_INFO_PATH
+        from netprintbox.settings import ACCOUNT_INFO_PATH
         from netprintbox.exceptions import InvalidNetprintAccountInfo
 
         user = create_user()
@@ -379,7 +379,7 @@ class DropboxServicePendingNotificationTest(DropboxTestBase):
         from webapp2 import uri_for
         from dropbox.rest import ErrorResponse
         from netprintbox.exceptions import BecomePendingUser
-        from settings import SYSADMIN_ADDRESS
+        from netprintbox.settings import SYSADMIN_ADDRESS
 
         class FakeClient(object):
             def __getattr__(self, name):
