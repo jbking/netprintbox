@@ -1,7 +1,3 @@
-import sys
-sys.path.insert(0, 'bundle')
-sys.path.insert(0, 'src')
-
 import logging
 
 import webapp2
