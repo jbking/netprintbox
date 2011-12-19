@@ -191,7 +191,7 @@ class NetprintboxService(object):
                         file_info.state = FileState.LATEST
                         file_info.put()
                     item_dict['controlled'] = True
-                    item_dict['last_modified'] = file_info.last_modified\
+                    item_dict['last_modified'] = file_info.local_last_modified\
                             .strftime(DATETIME_FORMAT)
                 else:
                     item_dict['controlled'] = False
@@ -212,7 +212,7 @@ class NetprintboxService(object):
                             'valid_date': None,
                             'page_numbers': '-',
                             'paper_size': '-',
-                            'last_modified': file_info.last_modified\
+                            'last_modified': file_info.local_last_modified\
                                     .strftime(DATETIME_FORMAT),
                             }
 
@@ -365,7 +365,8 @@ class DropboxService(object):
                                email=account_info['email'],
                                display_name=account_info['display_name'],
                                access_key=session.token.key,
-                               access_secret=session.token.secret)
+                               access_secret=session.token.secret,
+                               country=account_info['country'])
         else:
             user = q.get()
             user.email = account_info['email']
@@ -373,6 +374,7 @@ class DropboxService(object):
             user.access_key = session.token.key
             user.access_secret = session.token.secret
             user.pending = False  # XXX direct state change.
+            user.country = account_info['country']
         user.put()
 
         OAuthRequestToken.delete(request_key)

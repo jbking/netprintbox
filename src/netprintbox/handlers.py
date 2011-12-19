@@ -26,6 +26,7 @@ from webob import exc
 import webapp2 as w
 
 import settings
+from netprint import LoginFailure, UnexpectedContent
 from netprintbox.data import DropboxUser
 from netprintbox.exceptions import (
         OverLimit, PendingUser,
@@ -71,6 +72,8 @@ def handling_task_exception(user_key):
     except (PendingUser, OverLimit):
         logging.exception('user_key: %s', user_key)
     except (DropboxServiceUnavailable, DropboxServerError):
+        logging.exception('user_key: %s', user_key)
+    except (LoginFailure, UnexpectedContent):
         logging.exception('user_key: %s', user_key)
     except:
         user = DropboxUser.get(user_key)

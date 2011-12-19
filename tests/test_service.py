@@ -84,12 +84,12 @@ class NetprintboxServiceTest(ServiceTestBase):
             [(item['id'], item['name'], item['controlled'],
               item['last_modified']) for item in result],
             [('FAKE:WAIT', f1.netprint_name, True,
-              f1.last_modified.strftime(DATETIME_FORMAT)),
+              f1.local_last_modified.strftime(DATETIME_FORMAT)),
              ('FAKE:ERROR', f2.netprint_name, True,
-              f2.last_modified.strftime(DATETIME_FORMAT)),
+              f2.local_last_modified.strftime(DATETIME_FORMAT)),
              ('uncontrolled', 'uncontrolled.jpg', False, None),
              ('latest', f3.netprint_name, True,
-              f3.last_modified.strftime(DATETIME_FORMAT)),
+              f3.local_last_modified.strftime(DATETIME_FORMAT)),
             ])
 
         # flush side-effect of above.
@@ -318,6 +318,7 @@ class DropboxServiceSetupTest(DropboxStaticTestBase):
                 return {'uid': self.uid,
                         'email': 'email',
                         'display_name': 'display_name',
+                        'country': 'JP',
                         }
 
         class session(object):

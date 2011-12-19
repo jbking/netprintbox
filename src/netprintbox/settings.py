@@ -23,6 +23,6 @@ TEMPLATE_PATH = os.path.join(ROOT_DIR, 'templates')
 
 try:
     exec file(os.path.join(PACKAGE_DIR, 'settings_local.py')).read()
-    logging.info("setting_local.py loaded")
+    logging.info("settings_local.py loaded")
 except IOError:
-    logging.info("no setting_local.py")
+    logging.info("no settings_local.py")

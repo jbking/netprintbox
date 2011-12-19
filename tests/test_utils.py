@@ -11,6 +11,7 @@ def create_user(**kwargs):
             'display_name': 'display_name',
             'access_key': 'access_key',
             'access_secret': 'access_secret',
+            'country': 'JP',
         }
     params = dict(default)
     params.update(kwargs)

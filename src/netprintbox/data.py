@@ -21,12 +21,18 @@ import logging
 from google.appengine.ext import db
 from google.appengine.api import memcache, mail
 from oauth.oauth import OAuthToken
+from dateutil import tz
 
 import settings
 from netprintbox.utils import get_namespace, load_template
 from netprintbox.exceptions import BecomePendingUser
 from netprintbox.template_utils import (
         get_namespace as get_template_namespace,)
+
+
+TZ_MAP = {
+    'JP': 'Asia/Tokyo',
+}
 
 
 class DropboxUser(db.Model):
@@ -36,6 +42,7 @@ class DropboxUser(db.Model):
     access_key = db.StringProperty(required=True)
     access_secret = db.StringProperty(required=True, indexed=False)
     pending = db.BooleanProperty(default=False)
+    country = db.StringProperty(default='JP')
 
     def own_files(self):
         return DropboxFileInfo.all().ancestor(self)
@@ -74,6 +81,16 @@ class DropboxFileInfo(db.Model):
     netprint_id = db.StringProperty()
     netprint_name = db.StringProperty(required=True)
     last_modified = db.DateTimeProperty(required=True)
+
+    @property
+    def local_last_modified(self):
+        country = self.parent().country
+        if country in TZ_MAP:
+            tzinfo = tz.gettz(TZ_MAP[country])
+            utc = tz.gettz('UTC')
+            return self.last_modified.replace(tzinfo=utc).astimezone(tzinfo)
+        else:
+            return self.last_modified
 
 
 class OAuthRequestToken(object):
