@@ -286,7 +286,6 @@ class DropboxService(object):
     def client(self, client):
         self._client = client
 
-
     @handle_error_response
     def list(self, path, recursive=True):
         if recursive:
