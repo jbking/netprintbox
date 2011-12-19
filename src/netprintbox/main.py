@@ -1,20 +1,24 @@
 import logging
 
-import webapp2
+import webapp2 as w
 import httplib2
-
-from netprintbox import handlers
 
 if logging.getLogger().level <= logging.DEBUG:
     httplib2.debuglevel = 1
 
-
-app = webapp2.WSGIApplication([
-    (r'/dropbox/authorize', handlers.AuthHandler),
-    (r'/dropbox/callback', handlers.AuthCallbackHandler),
-    (r'/task/sync', handlers.CronHandler),
-    (r'/task/check', handlers.SyncWorker),
-    (r'/task/make_report', handlers.MakeReportHandler),
-    (r'/guide/setup', handlers.SetupGuide),
-    (r'/', handlers.TopHandler),
+app = w.WSGIApplication([
+    w.Route('/dropbox/authorize', 'netprintbox.handlers.AuthHandler',
+            name='authorize'),
+    w.Route(r'/dropbox/callback', 'netprintbox.handlers.AuthCallbackHandler',
+            name='authorize_callback'),
+    w.Route(r'/task/sync', 'netprintbox.handlers.CronHandler',
+            name='sync_all'),
+    w.Route(r'/task/check', 'netprintbox.handlers.SyncWorker',
+            name='check_for_user'),
+    w.Route(r'/task/make_report', 'netprintbox.handlers.MakeReportHandler',
+            name='make_report_for_user'),
+    w.Route(r'/guide/setup', 'netprintbox.handlers.SetupGuide',
+            name='setup_guide'),
+    w.Route(r'/', 'netprintbox.handlers.TopHandler',
+            name='top'),
     ])
