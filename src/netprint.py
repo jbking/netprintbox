@@ -162,7 +162,7 @@ def get_sending_target(file_name):
             curfrm.submit();
         }
     """
-    ext = os.path.splitext(file_name)[1]
+    ext = os.path.splitext(file_name)[1].lower()
     if ext in ('.docx', '.pptx', '.xlsx'):
         return SendingTarget.OFFICE
     elif ext in ('.doc', '.rtf', '.xls', '.ppt',

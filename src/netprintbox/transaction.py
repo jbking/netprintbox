@@ -108,7 +108,11 @@ class SyncTransaction(object):
             self.context.delete_from_netprint(netprint_id)
             self.context.transfer_from_dropbox(path,
                                                limit=self.available_space)
-        db.run_in_transaction(txn)
+
+        try:
+            db.run_in_transaction(txn)
+        except UnsupportedFile:
+            logging.exception("Got an unsupported file %r", dropbox_item)
 
     def _dropbox_only(self, dropbox_item):
         def txn():
@@ -163,7 +167,7 @@ class SyncTransaction(object):
         try:
             db.run_in_transaction(txn)
         except UnsupportedFile:
-            logging.exception('Got an unsupported file')
+            logging.exception("Got an unsupported file %r", dropbox_item)
 
     def _netprint_only(self, netprint_item):
         def txn():
