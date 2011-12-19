@@ -34,3 +34,8 @@ File
   - hash issued by netprint
 - futures.
   - selectable to keep the file permanently. (UI)
+
+Idea
+----
+- mkdir sub-directories as paper size.
+- store mail address in ini for notification.
