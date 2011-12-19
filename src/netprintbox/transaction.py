@@ -23,7 +23,7 @@ from netprintbox.data import FileState, DropboxFileInfo
 
 from utils import normalize_name, is_generated_file
 from dropbox_utils import traverse
-from netprintbox.exceptions import TransactionError, OverLimit
+from netprintbox.exceptions import TransactionError, OverLimit, UnsupportedFile
 
 
 def _collect_entries(data):
@@ -153,7 +153,11 @@ class SyncTransaction(object):
                 raise TransactionError("Duplicated path? %s" % path)
             self.context.transfer_from_dropbox(path,
                                                limit=self.available_space)
-        db.run_in_transaction(txn)
+
+        try:
+            db.run_in_transaction(txn)
+        except UnsupportedFile:
+            logging.exception('Got an unsupported file')
 
     def _netprint_only(self, netprint_item):
         def txn():

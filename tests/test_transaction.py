@@ -245,6 +245,32 @@ class SyncFeatureTest(TransactionTestBase):
 
         self.assertEqual(list(context.user.own_files()), [])
 
+    @attr('unit', 'light')
+    def test_handle_unsupport_exception_on_each_item(self):
+        """
+        An unsupported file is put on netprintbox directory,
+        it appears on dropbox's metadata.
+        On such situation, the file is never transferred from dropbox.
+        And the transaction is never failed by that.
+        """
+        from netprintbox.exceptions import UnsupportedFile
+
+        result = []
+
+        class context(object):
+            user = create_user()
+
+            @staticmethod
+            def transfer_from_dropbox(path, limit=None):
+                result.append(path)
+                raise UnsupportedFile(path)
+
+        transaction = self._getOUT(context)
+        transaction._dropbox_only(dict(path='path', bytes=0, rev='rev'))
+
+        self.assertEqual(result, ['path'])
+        self.assertEqual(list(context.user.own_files()), [])
+
 
 class ObtainingLimitTest(TransactionTestBase):
     @attr('unit', 'light')

@@ -51,6 +51,11 @@ class NeedMargin:
 
 class NeedNotification:
     No, Yes = range(2)
+
+
+class SendingTarget(object):
+    NORMAL = 'https://www.printing.ne.jp/cgi-bin/mn.cgi'
+    OFFICE = 'https://www2.printing.ne.jp/cgi-bin/mn.cgi'
 ###############################################
 
 
@@ -82,6 +87,10 @@ class UnexpectedContent(ValueError):
     Because the session key of current session might be expired.
     Otherwise the content of the target site may be changed.
     """
+
+
+class UnknownExtension(ValueError):
+    pass
 ###############################################
 
 
@@ -129,6 +138,39 @@ def encode_multipart_data(data):
     lines[-1] += "--"
 
     return "\r\n".join(lines), boundary
+
+
+def get_sending_target(file_name):
+    """Returns the target host which the file should be sent.
+
+    Because there are hosts which are switched by file format."""
+    """
+    日本語Windows®上で使用する次のアプリケーションが対象です。Mac OSのアプリケーションには対応していません。
+    ・Microsoft® Word 97/98/2000/2002/2003/2007/2010 日本語（拡張子「.doc」「.docx」「.rtf」）
+    ・Microsoft® Excel 97/2000/2002/2003/2007/2010 日本語(拡張子「.xls」「.xlsx」)
+    ・Microsoft® PowerPoint® 97/2000/2002/2003/2007/2010 日本語(拡張子「.ppt」「.pptx」)
+    ・DocuWorks Ver.3.0以降 (拡張子「.xdw」)
+    ・JPEG (拡張子「.jpg」「.jpe」、「.jpeg」)
+    ・TIFF (拡張子「.tif」)
+    ・PDF Ver1.3/1.4/1.5/1.6/1.7（拡張子「.pdf」）
+
+        if(filename.match(/\.(docx|pptx|xlsx)$/i)){
+            curfrm.action="https://www2.printing.ne.jp/cgi-bin/mn.cgi";
+            curfrm.submit();
+        }else{
+            curfrm.action="https://www.printing.ne.jp/cgi-bin/mn.cgi";
+            curfrm.submit();
+        }
+    """
+    ext = os.path.splitext(file_name)[1]
+    if ext in ('.docx', '.pptx', '.xlsx'):
+        return SendingTarget.OFFICE
+    elif ext in ('.doc', '.rtf', '.xls', '.ppt',
+                 '.xdw', '.jpg', '.jpe', '.jpeg',
+                 '.tif', '.pdf'):
+        return SendingTarget.NORMAL
+    else:
+        raise UnknownExtension("Unknown extension '%s'" % ext)
 ###############################################
 
 
@@ -336,7 +378,8 @@ class Client(object):
         if need_notification == NeedNotification.Yes and mail_address is None:
             raise ValueError("need mail_address")
 
-        self._request(self.url, body=dict(
+        sending_url = get_sending_target(f.name)
+        self._request(sending_url, body=dict(
             s=self.session_key,
             c=0,  # unknown
             m=2,  # unknown
