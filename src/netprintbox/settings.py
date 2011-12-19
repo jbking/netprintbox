@@ -1,4 +1,5 @@
 import os
+import logging
 
 SYSADMIN_ADDRESS = 'YOUR_ADMIN_ADDRESS'
 DROPBOX_APP_KEY = 'YOUR_APP_KEY'
@@ -16,11 +17,12 @@ DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
 
 SLEEP_WAIT = 120
 
-PACKAGE_DIR = os.path.dirname(os.path.dirname(__file__))
-ROOT_DIR = os.path.dirname(PACKAGE_DIR)
+PACKAGE_DIR = os.path.dirname(__file__)
+ROOT_DIR = os.path.dirname(os.path.dirname(PACKAGE_DIR))
 TEMPLATE_PATH = os.path.join(ROOT_DIR, 'templates')
 
 try:
     exec file(os.path.join(PACKAGE_DIR, 'settings_local.py')).read()
+    logging.info("setting_local.py loaded")
 except IOError:
-    pass
+    logging.info("no setting_local.py")
