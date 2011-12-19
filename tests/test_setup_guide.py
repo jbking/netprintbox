@@ -82,7 +82,7 @@ class SetupGuideTest(TestCase):
         restore()
 
     def _getAUT(self):
-        from main import app
+        from netprintbox.main import app
         return app
 
     @attr('functional', 'light')
@@ -129,7 +129,7 @@ class SetupGuidePendingTest(TestCase):
         restore()
 
     def _getAUT(self):
-        from main import app
+        from netprintbox.main import app
         return app
 
     @attr('functional', 'light')
