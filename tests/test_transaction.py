@@ -247,6 +247,12 @@ class SyncFeatureTest(TransactionTestBase):
 
     @attr('unit', 'light')
     def test_handle_unsupport_exception_on_each_item(self):
+        """
+        An unsupported file is put on netprintbox directory,
+        it appears on dropbox's metadata.
+        On such situation, the file is never transferred from dropbox.
+        And the transaction is never failed by that.
+        """
         from netprintbox.exceptions import UnsupportedFile
 
         result = []
