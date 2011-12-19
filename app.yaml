@@ -21,6 +21,7 @@ builtins:
 
 skip_files: |
   ^(.*/)?(
+  (.git/.*)|
   (app\.yaml)|
   (.*\.py[co])|
   (.*/tests/.*)|
