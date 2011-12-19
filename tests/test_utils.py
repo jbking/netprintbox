@@ -45,3 +45,19 @@ def create_netprint_item(**kwargs):
     params = dict(default)
     params.update(kwargs)
     return Item(**params)
+
+
+def get_blank_request():
+    from netprintbox.main import app
+    from webapp2 import Request
+
+    request = Request.blank('/')
+    request.app = app
+    return request
+
+
+def set_request_local(request=None):
+    from webapp2 import _local
+    if request is None:
+        request = get_blank_request()
+    _local.request = request

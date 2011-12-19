@@ -2,7 +2,10 @@ from unittest import TestCase
 
 from nose.plugins.attrib import attr
 
-from test_utils import create_user, create_file_info
+from webapp2 import uri_for
+from test_utils import (
+        create_user, create_file_info,
+        get_blank_request, set_request_local)
 
 
 class DropboxUserTest(TestCase):
@@ -32,16 +35,18 @@ class DropboxUserTest(TestCase):
     @attr('unit', 'light')
     def test_put_pending(self):
         from netprintbox.exceptions import BecomePendingUser
-        from settings import HOST_NAME
 
         user = self._getOUT()
         with self.assertRaises(BecomePendingUser):
+            set_request_local()
             user.put_pending()
             self.assertTrue(user.is_pending)
         sent_messages = self.mail_stub.get_sent_messages(to=user.email)
         self.assertEqual(len(sent_messages), 1)
         message = sent_messages[0]
-        self.assertIn('http://%s/dropbox/authorize' % HOST_NAME,
+
+        request = get_blank_request()
+        self.assertIn(uri_for('authorize', _request=request, _full=True),
                       str(message.body))
 
     @attr('unit', 'light')

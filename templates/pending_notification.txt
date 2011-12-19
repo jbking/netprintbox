@@ -7,4 +7,4 @@ Dropbox連携においてエラーが発生しました。
 
 停止を解除するには下記URLへアクセスし、再度連携を有効にしてください。
 
-http://{{host}}/dropbox/authorize
+{{uri_for('authorize', _full=True)}}

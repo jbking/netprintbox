@@ -59,7 +59,8 @@ class CronHandler(w.RequestHandler):
         for user in DropboxUser.all():
             if not user.is_pending:
                 # XXX check the need to sync?
-                taskqueue.add(url='/task/check', params={'key': user.key()},
+                taskqueue.add(url=self.uri_for('check_for_user'),
+                              params={'key': user.key()},
                               countdown=random.randint(0, SLEEP_WAIT))
 
 
@@ -84,7 +85,8 @@ class SyncWorker(w.RequestHandler):
         with handling_task_exception(user_key):
             service = NetprintboxService(user_key)
             service.sync()
-            taskqueue.add(url='/task/make_report', params={'key': user_key},
+            taskqueue.add(url=self.uri_for('make_report_for_user'),
+                          params={'key': user_key},
                           countdown=random.randint(0, SLEEP_WAIT))
 
 
@@ -135,14 +137,14 @@ class SetupGuide(w.RequestHandler):
             self.step1(key, error=True)
         else:
             user = q.get()
-            taskqueue.add(url='/task/check', params={'key': user.key()})
+            taskqueue.add(url=self.uri_for('check_for_user'),
+                          params={'key': user.key()})
             self.step2()
 
     def need_reauthorize(self):
         from netprintbox.service import DropboxService
-        from settings import HOST_NAME
 
-        callback_url = 'http://%s/dropbox/authorize' % HOST_NAME
+        callback_url = self.uri_for('authorize', _full=True)
         authz_url = DropboxService.build_authorize_url(callback_url)
         raise exc.HTTPFound(location=authz_url)
 

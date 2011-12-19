@@ -23,7 +23,6 @@ import hashlib
 from httplib import HTTPException
 from StringIO import StringIO
 from ConfigParser import ConfigParser
-from collections import OrderedDict
 
 from google.appengine.ext import db
 from google.appengine.api import memcache
@@ -47,7 +46,10 @@ from netprintbox.transaction import SyncTransaction
 from dropbox_utils import traverse, ensure_binary_string
 from settings import (
         DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_ACCESS_TYPE,
-        HOST_NAME, USER_AGENT, ACCOUNT_INFO_PATH, REPORT_PATH, DATETIME_FORMAT)
+        USER_AGENT, ACCOUNT_INFO_PATH, REPORT_PATH, DATETIME_FORMAT)
+from netprintbox.template_utils import (
+        get_namespace as get_template_namespace,
+        )
 
 
 class NetprintService(object):
@@ -84,17 +86,6 @@ class NetprintService(object):
     def put(self, file_obj):
         logging.debug(u"Putting file to Netprint: %r", file_obj.name)
         return self.client.send(file_obj)
-
-
-def categorize_by(key, item_list, reverse=False):
-    """ Categorize item list(list of dict) by the key.
-
-    An utility function for template. """
-    _dict = {}
-    for item in item_list:
-        _dict.setdefault(item[key], []).append(item)
-    return OrderedDict(sorted(_dict.items(), key=lambda t: t[0],
-                              reverse=reverse))
 
 
 class NetprintboxService(object):
@@ -237,10 +228,9 @@ class NetprintboxService(object):
                           self.user.email,
                           self.user.uid)
             template = load_template('report.html',
-                    namespace={'categorize_by': categorize_by})
+                    namespace=get_template_namespace())
             rendered_data = template.substitute(
-                    item_list=item_list,
-                    host=HOST_NAME)
+                    item_list=item_list)
             self.dropbox.put(REPORT_PATH, StringIO(rendered_data))
         else:
             logging.debug('No need to make a report for %s(%s)',
