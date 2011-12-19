@@ -73,7 +73,7 @@ class DropboxFileInfo(db.Model):
     state = db.IntegerProperty(required=True)
     netprint_id = db.StringProperty()
     netprint_name = db.StringProperty(required=True)
-    last_modified = db.DateTimeProperty(auto_now=True)
+    last_modified = db.DateTimeProperty(required=True)
 
 
 class OAuthRequestToken(object):

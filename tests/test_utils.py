@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from netprint import Item
 from netprintbox import data
 
@@ -24,6 +26,7 @@ def create_file_info(user, **kwargs):
             'size': 1,
             'state': data.FileState.NEED_NETPRINT_ID,
             'netprint_name': 'path',
+            'last_modified': datetime.now(),
         }
     params = dict(default)
     params['parent'] = user
@@ -46,6 +49,16 @@ def create_netprint_item(**kwargs):
     params.update(kwargs)
     return Item(**params)
 
+
+def create_dropbox_item(**kwargs):
+    default = {
+            'path': 'path',
+            'bytes': 0,
+            'rev': 'rev',
+            'modified': "Sat, 21 Aug 2010 22:31:20 +0000"}
+    params = dict(default)
+    params.update(kwargs)
+    return params
 
 def get_blank_request():
     from netprintbox.main import app

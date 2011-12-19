@@ -17,12 +17,12 @@
 """
 import logging
 
+from dateutil.parser import parse
 from google.appengine.ext import db
 
 from netprintbox.data import FileState, DropboxFileInfo
-
-from utils import normalize_name, is_generated_file
-from dropbox_utils import traverse
+from netprintbox.utils import normalize_name, is_generated_file
+from netprintbox.dropbox_utils import traverse
 from netprintbox.exceptions import TransactionError, OverLimit, UnsupportedFile
 
 
@@ -63,6 +63,7 @@ class SyncTransaction(object):
             path = dropbox_item['path']
             size = dropbox_item['bytes']
             rev = dropbox_item['rev']
+            modified = parse(dropbox_item['modified'])
             netprint_id = netprint_item['id']
             netprint_name = netprint_item['name']
 
@@ -82,6 +83,7 @@ class SyncTransaction(object):
                                             rev=rev,
                                             size=size,
                                             state=FileState.NEED_NETPRINT_ID,
+                                            last_modified=modified,
                                             netprint_id=None,
                                             netprint_name=netprint_name)
                 file_info.put()
@@ -94,6 +96,7 @@ class SyncTransaction(object):
                     file_info.rev = rev
                     file_info.size = size
                     file_info.state = FileState.NEED_NETPRINT_ID
+                    file_info.last_modified = modified
                     # this will be re-assign after uploading.
                     file_info.netprint_id = None
                     file_info.put()
@@ -112,6 +115,7 @@ class SyncTransaction(object):
             path = dropbox_item['path']
             size = dropbox_item['bytes']
             rev = dropbox_item['rev']
+            modified = parse(dropbox_item['modified'])
 
             # excludes system generating files at all.
             if is_generated_file(path):
@@ -128,6 +132,7 @@ class SyncTransaction(object):
                                             rev=rev,
                                             size=size,
                                             state=FileState.NEED_NETPRINT_ID,
+                                            last_modified=modified,
                                             netprint_name=netprint_name)
                 file_info.put()
             elif query.count() == 1:
@@ -139,6 +144,7 @@ class SyncTransaction(object):
                     file_info.rev = rev
                     file_info.size = size
                     file_info.state = FileState.NEED_NETPRINT_ID
+                    file_info.last_modified = modified
                     file_info.put()
                 elif file_info.netprint_id is None:
                     # Waiting for id assigning.
