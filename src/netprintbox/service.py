@@ -31,7 +31,7 @@ from dropbox.rest import ErrorResponse
 
 from netprint import (
         Client as NetprintClient,
-        get_sending_target, UnknownExtension)
+        get_sending_target, UnknownExtension, LoginFailure)
 from netprintbox.utils import load_template, get_namespace
 from netprintbox.exceptions import (
         OverLimit, PendingUser, InvalidNetprintAccountInfo,
@@ -61,7 +61,10 @@ class NetprintService(object):
     def client(self):
         if getattr(self, '_client', None) is None:
             self._client = NetprintClient(Http(), USER_AGENT)
-            self._client.login(self.username, self.password)
+            try:
+                self._client.login(self.username, self.password)
+            except LoginFailure:
+                raise InvalidNetprintAccountInfo
         return self._client
 
     @client.setter
