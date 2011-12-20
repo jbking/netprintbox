@@ -214,6 +214,27 @@ class NetprintboxServiceTest(ServiceTestBase):
         with self.assertRaises(UnsupportedFile):
             service.transfer_from_dropbox('test.dat')
 
+    @attr('unit', 'light')
+    def test_ensure_paper_size_directories(self):
+        from netprint import PaperSize
+
+        user = create_user()
+        service = self._getOUT(user)
+
+        result = []
+
+        class dropbox(object):
+            @staticmethod
+            def file_create_folder(path):
+                result.append(path)
+
+        service.dropbox = dropbox
+        service.ensure_paper_size_directories()
+        self.assertItemsEqual(
+                result,
+                [attr_name for attr_name in dir(PaperSize)
+                 if not attr_name.startswith('_')])
+
 
 class DropboxTestBase(ServiceTestBase):
     def _getOUT(self, user):

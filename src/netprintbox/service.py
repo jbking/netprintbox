@@ -31,6 +31,7 @@ from dropbox.rest import ErrorResponse
 
 from netprint import (
         Client as NetprintClient,
+        PaperSize,
         get_sending_target, UnknownExtension, LoginFailure)
 from netprintbox.utils import load_template, get_namespace
 from netprintbox.exceptions import (
@@ -131,8 +132,18 @@ class NetprintboxService(object):
         raise InvalidNetprintAccountInfo
 
     def sync(self):
+        self.ensure_paper_size_directories()
+        self.move_files_on_root_into_A4()
         transaction = SyncTransaction(self)
         transaction.sync()
+
+    def ensure_paper_size_directories(self):
+        for attr_name in dir(PaperSize):
+            if not attr_name.startswith('_'):
+                self.dropbox.file_create_folder(attr_name)
+
+    def move_files_on_root_into_A4(self):
+        pass
 
     def delete_from_netprint(self, netprint_id):
         self.netprint.delete(netprint_id)
