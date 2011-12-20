@@ -409,7 +409,7 @@ class DropboxService(object):
             user.display_name = account_info['display_name']
             user.access_key = session.token.key
             user.access_secret = session.token.secret
-            user.pending = False  # XXX direct state change.
+            user.put_pending_away(_save=False)
             user.country = account_info['country']
         user.put()
 

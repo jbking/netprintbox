@@ -51,7 +51,7 @@ class DropboxUser(db.Model):
     def is_pending(self):
         return self.pending
 
-    def put_pending_away(self):
+    def put_pending_away(self, _save=True):
         self.pending = False
         self.put()
 
