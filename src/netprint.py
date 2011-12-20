@@ -303,17 +303,29 @@ class Client(object):
             item_list = []
             for row in self._soup.findAll('tr')[1:]:
                 column_list = row.findAll('td')
+                error_row = False
                 try:
-                    id = column_list[2].string
-                    if id is None:
-                        raise Reload
+                    id_column = column_list[2]
+                    if id_column.string is None:
+                        if id_column.findChild(text=u"エラー") is not None:
+                            error_row = True
+                        else:
+                            raise Reload
                 except IndexError:
                     raise Reload
-                item_list.append(Item(unicode(column_list[2].string),
+                if error_row:
+                    id_string = None
+                else:
+                    id_string = unicode(id_column.string)
+                try:
+                    page_numbers = int(column_list[5].string)
+                except ValueError:
+                    page_numbers = 0
+                item_list.append(Item(id_string,
                                       unicode(column_list[1].string),
                                       unicode(column_list[3].string),
                                       unicode(column_list[4].string),
-                                      int(column_list[5].string),
+                                      page_numbers,
                                       unicode(column_list[6].string),
                                      ))
             return item_list
