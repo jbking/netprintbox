@@ -110,10 +110,10 @@ class ClientTest(TestCase):
     def test_switch_sending_url_office(self):
         from netprint import SendingTarget
         self.assertEqual([SendingTarget.OFFICE],
-                         self._test_switch_sending_url('a.doc'))
+                         self._test_switch_sending_url('a.docx'))
 
     @attr('unit', 'light')
-    def test_switch_sending_url_office(self):
+    def test_switch_sending_url_unkown_extension(self):
         from netprint import UnknownExtension
         with self.assertRaises(UnknownExtension):
             self._test_switch_sending_url('a.gif')

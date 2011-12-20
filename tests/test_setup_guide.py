@@ -24,26 +24,6 @@ class SetupGuideTest(TestCase):
         res.status = 404
         res.reason = 'reason'
 
-        class m1(object):
-            def __init__(self):
-                self.state = 0
-
-            def __call__(self, path):
-                if self.state == 0:
-                    self.state += 1
-                    raise dropbox.rest.ErrorResponse(res)
-                else:
-                    return {}
-
-        class m2(object):
-            def __init__(self):
-                self.state = 0
-
-            def __call__(self):
-                if self.state == 0:
-                    self.state += 1
-                    raise dropbox.rest.ErrorResponse(res)
-
         class service(object):
             def __init__(self):
                 self.state = 0

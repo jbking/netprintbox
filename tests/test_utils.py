@@ -62,6 +62,7 @@ def create_dropbox_item(**kwargs):
     params.update(kwargs)
     return params
 
+
 def get_blank_request():
     from netprintbox.main import app
     from webapp2 import Request

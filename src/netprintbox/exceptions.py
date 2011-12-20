@@ -76,5 +76,6 @@ class BecomePendingUser(PendingUser):
 class InvalidNetprintAccountInfo(ValueError):
     pass
 
+
 class UnsupportedFile(ValueError):
     pass
