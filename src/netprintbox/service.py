@@ -87,9 +87,9 @@ class NetprintService(object):
         logging.debug(u"Deleting file from Netprint: %s", id)
         return self.client.delete(id)
 
-    def put(self, file_obj):
+    def put(self, file_obj, paper_size):
         logging.debug(u"Putting file to Netprint: %r", file_obj.name)
-        return self.client.send(file_obj)
+        return self.client.send(file_obj, paper_size=paper_size)
 
 
 class NetprintboxService(object):
@@ -163,7 +163,13 @@ class NetprintboxService(object):
         self.dropbox.delete(path)
 
     def transfer_from_dropbox(self, path, limit=None):
-        if os.path.splitext(path)[-1] in ('.jpg', '.jpeg'):
+        try:
+            paper_size_name = path[1:path.index('/', 1)]
+            paper_size = getattr(PaperSize, paper_size_name)
+        except (AttributeError, ValueError):
+            logging.debug("Ignore a miss placed path silently: %s", path)
+            return
+        if os.path.splitext(path)[-1].lower() in ('.jpg', '.jpeg'):
             file_limit = 4 * 1024 * 1024
         else:
             file_limit = 2 * 1024 * 1024
@@ -172,7 +178,7 @@ class NetprintboxService(object):
         if not self.netprint.is_supporting_file_type(path):
             raise UnsupportedFile(path)
         file_obj = self.dropbox.obtain(path, limit=limit)
-        self.netprint.put(file_obj)
+        self.netprint.put(file_obj, paper_size)
 
     def _compare_by_hash(self, update_hash=False):
         md5 = hashlib.new('md5')
