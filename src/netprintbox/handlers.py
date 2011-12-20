@@ -79,8 +79,7 @@ def handling_task_exception(user_key):
     except (UnexpectedContent,):
         logging.exception('user_key: %s', user_key)
     except:
-        user = DropboxUser.get(user_key)
-        user.put_pending()
+        logging.exception('unexpected exception: %s', user_key)
 
 
 class SyncWorker(w.RequestHandler):
