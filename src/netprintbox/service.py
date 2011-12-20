@@ -31,7 +31,7 @@ from dropbox.rest import ErrorResponse
 
 from netprint import (
         Client as NetprintClient,
-        PaperSize,
+        PaperSize, Color,
         get_sending_target, UnknownExtension, LoginFailure)
 from netprintbox.utils import load_template, get_namespace
 from netprintbox.exceptions import (
@@ -89,7 +89,13 @@ class NetprintService(object):
 
     def put(self, file_obj, paper_size):
         logging.debug(u"Putting file to Netprint: %r", file_obj.name)
-        return self.client.send(file_obj, paper_size=paper_size)
+        if paper_size == PaperSize.L:
+            color = Color.color
+        else:
+            color = Color.choice_at_printing
+        return self.client.send(file_obj,
+                                color=color,
+                                paper_size=paper_size)
 
 
 class NetprintboxService(object):
