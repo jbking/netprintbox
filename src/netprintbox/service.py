@@ -33,7 +33,7 @@ from netprint import (
         Client as NetprintClient,
         PaperSize, Color,
         get_sending_target, UnknownExtension, LoginFailure)
-from netprintbox.utils import load_template, get_namespace
+from netprintbox.utils import load_template, get_namespace, normalize_name
 from netprintbox.exceptions import (
         OverLimit, PendingUser, InvalidNetprintAccountInfo,
         DropboxBadRequest, DropboxForbidden,
@@ -93,6 +93,7 @@ class NetprintService(object):
             color = Color.color
         else:
             color = Color.choice_at_printing
+        file_obj.name = normalize_name(file_obj.name, ext=True)
         return self.client.send(file_obj,
                                 color=color,
                                 paper_size=paper_size)
@@ -190,7 +191,7 @@ class NetprintboxService(object):
         md5 = hashlib.new('md5')
         key = str(self.user.key())
         for item in self.netprint.list():
-            md5.update(item.id)
+            md5.update(item.id or '')
         namespace = get_namespace()
         digest = md5.hexdigest()
         previous_digest = memcache.get(key,

@@ -25,7 +25,9 @@
                     <li><h3>{{item['name']}}</h3>
                         <dl>
                             <dt>予約番号</dt>
-{{if item['id'].startswith('FAKE')}}
+{{if item['id'] is None}}
+                            <dd>エラー</dd>
+{{elif item['id'].startswith('FAKE')}}
     {{if item['id'] == 'FAKE:ERROR'}}
                             <dd>エラー</dd>
     {{elif item['id'] == 'FAKE:WAIT'}}

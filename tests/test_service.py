@@ -613,3 +613,32 @@ class DropboxServiceRecognizeErrorResponse(DropboxTestBase):
         from netprintbox.exceptions import DropboxInsufficientStorage
         self._test_metadata(DropboxInsufficientStorage, 507,
                             'Insufficient storage')
+
+
+class NetprintServiceTest(ServiceTestBase):
+    def _getOUT(self, username, password):
+        from netprintbox.service import NetprintService
+        return NetprintService(username, password)
+
+    @attr('unit', 'light')
+    def test_modify_name_on_put(self):
+        from netprint import PaperSize
+        from netprintbox.utils import normalize_name
+
+        result = []
+
+        class client(object):
+            @staticmethod
+            def send(file_obj, color=None, paper_size=None):
+                result.append((file_obj, color, paper_size))
+
+        fake = StringIO('fake')
+        fake.name = '/A4/foo.doc'
+
+        service = self._getOUT(None, None)
+        service.client = client
+        service.put(fake, PaperSize.A4)
+
+        file_obj = result[0][0]
+        self.assertEqual(file_obj.read(), 'fake')
+        self.assertEqual(file_obj.name, normalize_name(fake.name, ext=True))
