@@ -31,6 +31,7 @@ from dropbox.rest import ErrorResponse
 
 from netprint import (
         Client as NetprintClient,
+        PaperSize,
         get_sending_target, UnknownExtension, LoginFailure)
 from netprintbox.utils import load_template, get_namespace
 from netprintbox.exceptions import (
@@ -86,9 +87,9 @@ class NetprintService(object):
         logging.debug(u"Deleting file from Netprint: %s", id)
         return self.client.delete(id)
 
-    def put(self, file_obj):
+    def put(self, file_obj, paper_size):
         logging.debug(u"Putting file to Netprint: %r", file_obj.name)
-        return self.client.send(file_obj)
+        return self.client.send(file_obj, paper_size=paper_size)
 
 
 class NetprintboxService(object):
@@ -131,10 +132,29 @@ class NetprintboxService(object):
         raise InvalidNetprintAccountInfo
 
     def sync(self):
-        # XXX How we can handle the case that a file is removed on dropbox
-        #     and netprint but the data for the file exists?
+        # XXX pass sub directory name as paper size annotation to netprint.
+        self.ensure_paper_size_directories()
+        self.move_files_on_root_into_A4()
         transaction = SyncTransaction(self)
         transaction.sync()
+
+    def ensure_paper_size_directories(self):
+        root_dirs_path = [item['path']
+                          for item in self.dropbox.list('/')['contents']
+                          if item['is_dir']]
+        for attr_name in dir(PaperSize):
+            if (not attr_name.startswith('_')
+                and '/' + attr_name not in root_dirs_path):
+                self.dropbox.create_folder(attr_name)
+
+    def move_files_on_root_into_A4(self):
+        excludes = [REPORT_PATH, ACCOUNT_INFO_PATH]
+        excludes.extend('/' + name for name in dir(PaperSize)
+                        if not name.startswith('_'))
+        for item in self.dropbox.list('/')['contents']:
+            path = item['path']
+            if path not in excludes:
+                self.dropbox.move(path, '/A4' + path)
 
     def delete_from_netprint(self, netprint_id):
         self.netprint.delete(netprint_id)
@@ -143,7 +163,13 @@ class NetprintboxService(object):
         self.dropbox.delete(path)
 
     def transfer_from_dropbox(self, path, limit=None):
-        if os.path.splitext(path)[-1] in ('.jpg', '.jpeg'):
+        try:
+            paper_size_name = path[1:path.index('/', 1)]
+            paper_size = getattr(PaperSize, paper_size_name)
+        except (AttributeError, ValueError):
+            logging.debug("Ignore a miss placed path silently: %s", path)
+            return
+        if os.path.splitext(path)[-1].lower() in ('.jpg', '.jpeg'):
             file_limit = 4 * 1024 * 1024
         else:
             file_limit = 2 * 1024 * 1024
@@ -152,7 +178,7 @@ class NetprintboxService(object):
         if not self.netprint.is_supporting_file_type(path):
             raise UnsupportedFile(path)
         file_obj = self.dropbox.obtain(path, limit=limit)
-        self.netprint.put(file_obj)
+        self.netprint.put(file_obj, paper_size)
 
     def _compare_by_hash(self, update_hash=False):
         md5 = hashlib.new('md5')
@@ -332,6 +358,19 @@ class DropboxService(object):
         path = ensure_binary_string(path)
         logging.debug(u"Deleting file from Dropbox: %r", path)
         return self.client.file_delete(path)
+
+    @handle_error_response
+    def create_folder(self, path):
+        path = ensure_binary_string(path)
+        logging.debug(u"Creating a directory: %r", path)
+        return self.client.file_create_folder(path)
+
+    @handle_error_response
+    def move(self, from_path, to_path):
+        from_path = ensure_binary_string(from_path)
+        to_path = ensure_binary_string(to_path)
+        logging.debug(u"Moving into: %r %r", from_path, to_path)
+        return self.client.file_move(from_path, to_path)
 
     @classmethod
     def get_session(cls):

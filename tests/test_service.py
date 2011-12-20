@@ -5,7 +5,8 @@ from nose.plugins.attrib import attr
 from minimock import mock, restore
 
 from test_utils import (
-        create_user, create_file_info, create_netprint_item,
+        create_user, create_file_info,
+        create_netprint_item, create_dropbox_item,
         get_blank_request, set_request_local)
 
 
@@ -138,7 +139,7 @@ class NetprintboxServiceTest(ServiceTestBase):
         memcache.set(str(user.key()), md5.hexdigest(),
                      namespace=get_namespace())
 
-        service = self._getOUT(user.key())
+        service = self._getOUT(user)
         service.netprint = netprint
 
         (need_report, _result) = service._make_report()
@@ -151,8 +152,7 @@ class NetprintboxServiceTest(ServiceTestBase):
     def test_load_netprint_account_info(self):
         from netprintbox.settings import ACCOUNT_INFO_PATH
 
-        user = create_user()
-        service = self._getOUT(user)
+        service = self._getOUT(None)
 
         class dropbox(object):
             @staticmethod
@@ -169,8 +169,7 @@ class NetprintboxServiceTest(ServiceTestBase):
         from netprintbox.settings import ACCOUNT_INFO_PATH
         from netprintbox.exceptions import InvalidNetprintAccountInfo
 
-        user = create_user()
-        service = self._getOUT(user)
+        service = self._getOUT(None)
 
         class dropbox(object):
             @staticmethod
@@ -184,8 +183,9 @@ class NetprintboxServiceTest(ServiceTestBase):
 
     @attr('unit', 'light')
     def test_transfer_from_dropbox(self):
-        user = create_user()
-        service = self._getOUT(user)
+        from netprint import PaperSize
+
+        service = self._getOUT(None)
 
         class dropbox(object):
             @staticmethod
@@ -194,25 +194,135 @@ class NetprintboxServiceTest(ServiceTestBase):
 
         result = []
 
-        def put(file_obj):
-            result.append(file_obj)
+        class netprint(object):
+            @staticmethod
+            def put(file_obj, paper_size):
+                result.append((file_obj, paper_size))
 
-        service.load_netprint_account_info = lambda: ('foo', 'bar')
+            @staticmethod
+            def is_supporting_file_type(path):
+                return True
+
         service.dropbox = dropbox
-        service.netprint.put = put
+        service.netprint = netprint
 
-        service.transfer_from_dropbox('test.jpg')
-        self.assertEqual(result[0].read(), 'fake')
+        service.transfer_from_dropbox('/B5/test.jpg')
+        self.assertEqual(result[0][0].read(), 'fake')
+        self.assertEqual(result[0][1], PaperSize.B5)
 
     @attr('unit', 'light')
     def test_transfer_from_dropbox_unknown_file_type(self):
         from netprintbox.exceptions import UnsupportedFile
-        user = create_user()
-        service = self._getOUT(user)
+
+        service = self._getOUT(None)
         service.load_netprint_account_info = lambda: ('foo', 'bar')
 
         with self.assertRaises(UnsupportedFile):
-            service.transfer_from_dropbox('test.dat')
+            service.transfer_from_dropbox('/A4/test.dat')
+
+    @attr('unit', 'light')
+    def test_ensure_paper_size_directories(self):
+        from netprint import PaperSize
+
+        service = self._getOUT(None)
+
+        result = []
+
+        class dropbox(object):
+            @staticmethod
+            def list(path):
+                return {'contents': [
+                    create_dropbox_item(path='/A4', is_dir=True),
+                    ]}
+
+            @staticmethod
+            def create_folder(path):
+                result.append(path)
+
+        service.dropbox = dropbox
+        service.ensure_paper_size_directories()
+
+        expected_dir_names = set(attr_name for attr_name in dir(PaperSize)
+                                 if not attr_name.startswith('_')) \
+                                 - set(['A4'])
+        self.assertItemsEqual(result, expected_dir_names)
+
+    @attr('unit', 'light')
+    def test_move_files_on_root_into_A4(self):
+        from netprint import PaperSize
+        from netprintbox.settings import ACCOUNT_INFO_PATH, REPORT_PATH
+
+        self.assertIn('A4', dir(PaperSize))
+
+        service = self._getOUT(None)
+
+        result = []
+
+        class dropbox(object):
+            @staticmethod
+            def list(path):
+                self.assertEqual(path, '/')
+                root_dict = {'is_dir': True,
+                             'contents': []}
+                for generated_path in (ACCOUNT_INFO_PATH, REPORT_PATH):
+                    root_dict['contents'].append(
+                            create_dropbox_item(path=generated_path))
+                for paper_size_name in [attr_name
+                                        for attr_name in dir(PaperSize)
+                                        if not attr_name.startswith('_')]:
+                    root_dict['contents'].append(
+                            create_dropbox_item(path='/' + paper_size_name))
+                for target_path in ('/foo.doc', '/bar.xls'):
+                    root_dict['contents'].append(
+                            create_dropbox_item(path=target_path))
+                return root_dict
+
+            @staticmethod
+            def move(from_path, to_path):
+                result.append((from_path, to_path))
+
+        service.dropbox = dropbox
+        service.move_files_on_root_into_A4()
+        self.assertItemsEqual(result,
+                [('/foo.doc', '/A4/foo.doc'),
+                 ('/bar.xls', '/A4/bar.xls')])
+
+    @attr('unit', 'light')
+    def test_specify_paper_size(self):
+        service = self._getOUT(None)
+
+        obtain_result = []
+        return_fake = []
+        put_result = []
+
+        class dropbox(object):
+            @staticmethod
+            def obtain(path, limit=None):
+                obtain_result.append(path)
+                obj = object()
+                return_fake.append(obj)
+                return obj
+
+        class netprint(object):
+            @staticmethod
+            def put(file_obj, paper_size):
+                put_result.append(file_obj)
+
+            @staticmethod
+            def is_supporting_file_type(path):
+                return True
+
+        service.dropbox = dropbox
+        service.netprint = netprint
+
+        # Files in paper size directory are acceptable.
+        service.transfer_from_dropbox('/A4/foo.doc')
+        service.transfer_from_dropbox('/bar.xls')
+        service.transfer_from_dropbox('/B5/baz.pdf')
+
+        self.assertItemsEqual(obtain_result,
+                              ['/A4/foo.doc', '/B5/baz.pdf'])
+        self.assertItemsEqual(return_fake, put_result)
 
 
 class DropboxTestBase(ServiceTestBase):
@@ -239,8 +349,7 @@ class DropboxServiceObtainTest(DropboxTestBase):
             def get_file(path):
                 return StringIO('foo')
 
-        user = create_user()
-        service = self._getOUT(user)
+        service = self._getOUT(None)
         service.client = client
         file_obj = service.obtain('fake_path')
         self.assertEqual(file_obj.name, 'fake_path')

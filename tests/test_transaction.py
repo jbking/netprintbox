@@ -172,6 +172,43 @@ class SyncFeatureTest(TransactionTestBase):
         self.assertListEqual(deleted, [file_info.path])
 
     @attr('unit', 'light')
+    def test_deleted_file(self):
+        item_list = []
+
+        class context(object):
+            user = create_user()
+
+            class netprint(object):
+                @staticmethod
+                def list():
+                    return []
+
+            class dropbox(object):
+                @staticmethod
+                def list(path):
+                    return {'is_dir': True,
+                            'path': '/',
+                            'contents': [
+                                {'is_dir': True,
+                                 'path': '/A4',
+                                 'contents': item_list,
+                                 },
+                                ]}
+
+        transaction = self._getOUT(context)
+
+        file_info = create_file_info(context.user,
+                                     path='/A4/foo.doc',
+                                     netprint_id='netprint_id')
+        item_list.append(create_dropbox_item(path=file_info.path,
+                                             is_deleted=True))
+
+        transaction.sync()
+
+        q = context.user.own_files()
+        self.assertEqual(q.count(), 0)
+
+    @attr('unit', 'light')
     def test_do_not_sync_generated_file(self):
         from netprintbox.settings import ACCOUNT_INFO_PATH, REPORT_PATH
 

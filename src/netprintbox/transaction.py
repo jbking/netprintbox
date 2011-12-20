@@ -30,7 +30,7 @@ def _collect_entries(data):
     result = {}
 
     def __collect_entries(data):
-        if not data['is_dir']:
+        if not data['is_dir'] and not data.get('is_deleted', False):
             result[normalize_name(data['path'])] = data
 
     traverse(__collect_entries, data)
