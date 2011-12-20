@@ -139,7 +139,7 @@ class NetprintboxServiceTest(ServiceTestBase):
         memcache.set(str(user.key()), md5.hexdigest(),
                      namespace=get_namespace())
 
-        service = self._getOUT(user.key())
+        service = self._getOUT(user)
         service.netprint = netprint
 
         (need_report, _result) = service._make_report()
@@ -152,8 +152,7 @@ class NetprintboxServiceTest(ServiceTestBase):
     def test_load_netprint_account_info(self):
         from netprintbox.settings import ACCOUNT_INFO_PATH
 
-        user = create_user()
-        service = self._getOUT(user)
+        service = self._getOUT(None)
 
         class dropbox(object):
             @staticmethod
@@ -170,8 +169,7 @@ class NetprintboxServiceTest(ServiceTestBase):
         from netprintbox.settings import ACCOUNT_INFO_PATH
         from netprintbox.exceptions import InvalidNetprintAccountInfo
 
-        user = create_user()
-        service = self._getOUT(user)
+        service = self._getOUT(None)
 
         class dropbox(object):
             @staticmethod
@@ -185,8 +183,7 @@ class NetprintboxServiceTest(ServiceTestBase):
 
     @attr('unit', 'light')
     def test_transfer_from_dropbox(self):
-        user = create_user()
-        service = self._getOUT(user)
+        service = self._getOUT(None)
 
         class dropbox(object):
             @staticmethod
@@ -208,8 +205,8 @@ class NetprintboxServiceTest(ServiceTestBase):
     @attr('unit', 'light')
     def test_transfer_from_dropbox_unknown_file_type(self):
         from netprintbox.exceptions import UnsupportedFile
-        user = create_user()
-        service = self._getOUT(user)
+
+        service = self._getOUT(None)
         service.load_netprint_account_info = lambda: ('foo', 'bar')
 
         with self.assertRaises(UnsupportedFile):
@@ -219,8 +216,7 @@ class NetprintboxServiceTest(ServiceTestBase):
     def test_ensure_paper_size_directories(self):
         from netprint import PaperSize
 
-        user = create_user()
-        service = self._getOUT(user)
+        service = self._getOUT(None)
 
         result = []
 
@@ -250,8 +246,7 @@ class NetprintboxServiceTest(ServiceTestBase):
 
         self.assertIn('A4', dir(PaperSize))
 
-        user = create_user()
-        service = self._getOUT(user)
+        service = self._getOUT(None)
 
         result = []
 
@@ -309,8 +304,7 @@ class DropboxServiceObtainTest(DropboxTestBase):
             def get_file(path):
                 return StringIO('foo')
 
-        user = create_user()
-        service = self._getOUT(user)
+        service = self._getOUT(None)
         service.client = client
         file_obj = service.obtain('fake_path')
         self.assertEqual(file_obj.name, 'fake_path')
