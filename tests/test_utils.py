@@ -53,6 +53,7 @@ def create_netprint_item(**kwargs):
 
 def create_dropbox_item(**kwargs):
     default = {
+            'is_dir': False,
             'path': 'path',
             'bytes': 0,
             'rev': 'rev',

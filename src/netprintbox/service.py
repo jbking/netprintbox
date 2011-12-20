@@ -138,12 +138,22 @@ class NetprintboxService(object):
         transaction.sync()
 
     def ensure_paper_size_directories(self):
+        root_dirs_path = [item['path']
+                          for item in self.dropbox.list('/')['contents']
+                          if item['is_dir']]
         for attr_name in dir(PaperSize):
-            if not attr_name.startswith('_'):
-                self.dropbox.file_create_folder(attr_name)
+            if (not attr_name.startswith('_')
+                and '/' + attr_name not in root_dirs_path):
+                self.dropbox.create_folder(attr_name)
 
     def move_files_on_root_into_A4(self):
-        pass
+        excludes = [REPORT_PATH, ACCOUNT_INFO_PATH]
+        excludes.extend('/' + name for name in dir(PaperSize)
+                        if not name.startswith('_'))
+        for item in self.dropbox.list('/')['contents']:
+            path = item['path']
+            if path not in excludes:
+                self.dropbox.move(path, '/A4' + path)
 
     def delete_from_netprint(self, netprint_id):
         self.netprint.delete(netprint_id)
@@ -341,6 +351,19 @@ class DropboxService(object):
         path = ensure_binary_string(path)
         logging.debug(u"Deleting file from Dropbox: %r", path)
         return self.client.file_delete(path)
+
+    @handle_error_response
+    def create_folder(self, path):
+        path = ensure_binary_string(path)
+        logging.debug(u"Creating a directory: %r", path)
+        return self.client.file_create_folder(path)
+
+    @handle_error_response
+    def move(self, from_path, to_path):
+        from_path = ensure_binary_string(from_path)
+        to_path = ensure_binary_string(to_path)
+        logging.debug(u"Moving into: %r %r", from_path, to_path)
+        return self.client.file_move(from_path, to_path)
 
     @classmethod
     def get_session(cls):

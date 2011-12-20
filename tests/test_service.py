@@ -5,7 +5,8 @@ from nose.plugins.attrib import attr
 from minimock import mock, restore
 
 from test_utils import (
-        create_user, create_file_info, create_netprint_item,
+        create_user, create_file_info,
+        create_netprint_item, create_dropbox_item,
         get_blank_request, set_request_local)
 
 
@@ -225,15 +226,63 @@ class NetprintboxServiceTest(ServiceTestBase):
 
         class dropbox(object):
             @staticmethod
-            def file_create_folder(path):
+            def list(path):
+                return {'contents': [
+                    create_dropbox_item(path='/A4', is_dir=True),
+                    ]}
+
+            @staticmethod
+            def create_folder(path):
                 result.append(path)
 
         service.dropbox = dropbox
         service.ensure_paper_size_directories()
-        self.assertItemsEqual(
-                result,
-                [attr_name for attr_name in dir(PaperSize)
-                 if not attr_name.startswith('_')])
+
+        expected_dir_names = set(attr_name for attr_name in dir(PaperSize)
+                                 if not attr_name.startswith('_')) \
+                                 - set(['A4'])
+        self.assertItemsEqual(result, expected_dir_names)
+
+    @attr('unit', 'light')
+    def test_move_files_on_root_into_A4(self):
+        from netprint import PaperSize
+        from netprintbox.settings import ACCOUNT_INFO_PATH, REPORT_PATH
+
+        self.assertIn('A4', dir(PaperSize))
+
+        user = create_user()
+        service = self._getOUT(user)
+
+        result = []
+
+        class dropbox(object):
+            @staticmethod
+            def list(path):
+                self.assertEqual(path, '/')
+                root_dict = {'is_dir': True,
+                             'contents': []}
+                for generated_path in (ACCOUNT_INFO_PATH, REPORT_PATH):
+                    root_dict['contents'].append(
+                            create_dropbox_item(path=generated_path))
+                for paper_size_name in [attr_name
+                                        for attr_name in dir(PaperSize)
+                                        if not attr_name.startswith('_')]:
+                    root_dict['contents'].append(
+                            create_dropbox_item(path='/' + paper_size_name))
+                for target_path in ('/foo.doc', '/bar.xls'):
+                    root_dict['contents'].append(
+                            create_dropbox_item(path=target_path))
+                return root_dict
+
+            @staticmethod
+            def move(from_path, to_path):
+                result.append((from_path, to_path))
+
+        service.dropbox = dropbox
+        service.move_files_on_root_into_A4()
+        self.assertItemsEqual(result,
+                [('/foo.doc', '/A4/foo.doc'),
+                 ('/bar.xls', '/A4/bar.xls')])
 
 
 class DropboxTestBase(ServiceTestBase):
