@@ -132,6 +132,7 @@ class NetprintboxService(object):
         raise InvalidNetprintAccountInfo
 
     def sync(self):
+        # XXX pass sub directory name as paper size annotation to netprint.
         self.ensure_paper_size_directories()
         self.move_files_on_root_into_A4()
         transaction = SyncTransaction(self)
