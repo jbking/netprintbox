@@ -4,7 +4,7 @@ from StringIO import StringIO
 from nose.plugins.attrib import attr
 from minimock import mock, restore
 
-from test_utils import (
+from utils import (
         create_user, create_file_info,
         create_netprint_item, create_dropbox_item,
         get_blank_request, set_request_local)
@@ -613,3 +613,33 @@ class DropboxServiceRecognizeErrorResponse(DropboxTestBase):
         from netprintbox.exceptions import DropboxInsufficientStorage
         self._test_metadata(DropboxInsufficientStorage, 507,
                             'Insufficient storage')
+
+
+class NetprintServiceTest(ServiceTestBase):
+    def _getOUT(self, username, password):
+        from netprintbox.service import NetprintService
+        return NetprintService(username, password)
+
+    @attr('unit', 'light')
+    def test_modify_name_on_put(self):
+        from netprint import PaperSize
+        from netprintbox.utils import normalize_name
+
+        result = []
+
+        class client(object):
+            @staticmethod
+            def send(file_obj, file_name=None, color=None, paper_size=None):
+                result.append((file_obj, file_name, color, paper_size))
+
+        fake = StringIO('fake')
+        fake.name = '/A4/foo.doc'
+
+        service = self._getOUT(None, None)
+        service.client = client
+        service.put(fake, PaperSize.A4)
+
+        file_obj = result[0][0]
+        file_name = result[0][1]
+        self.assertEqual(file_obj.read(), 'fake')
+        self.assertEqual(file_name, normalize_name(fake.name, ext=True))

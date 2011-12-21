@@ -67,19 +67,19 @@ class CronHandler(w.RequestHandler):
 
 
 @contextmanager
-def handling_task_exception(user_key):
+def handling_task_exception(user):
     try:
         yield
     except (PendingUser, OverLimit):
-        logging.exception('user_key: %s', user_key)
+        logging.exception('user: %s', user.email)
     except (DropboxServiceUnavailable, DropboxServerError):
-        logging.exception('user_key: %s', user_key)
+        logging.exception('user: %s', user.email)
     except (InvalidNetprintAccountInfo,):
-        logging.exception('user_key: %s', user_key)
+        logging.exception('user: %s', user.email)
     except (UnexpectedContent,):
-        logging.exception('user_key: %s', user_key)
+        logging.exception('user: %s', user.email)
     except:
-        logging.exception('unexpected exception: %s', user_key)
+        logging.exception('unexpected exception: %s', user.email)
 
 
 class SyncWorker(w.RequestHandler):
@@ -87,8 +87,11 @@ class SyncWorker(w.RequestHandler):
         from netprintbox.service import NetprintboxService
 
         user_key = self.request.get('key')
-        with handling_task_exception(user_key):
-            service = NetprintboxService(user_key)
+        user = DropboxUser.get(user_key)
+        logging.debug("Checking for: %s", user.email)
+
+        with handling_task_exception(user):
+            service = NetprintboxService(user)
             service.sync()
             taskqueue.add(url=self.uri_for('make_report_for_user'),
                           params={'key': user_key},
@@ -100,8 +103,11 @@ class MakeReportHandler(w.RequestHandler):
         from netprintbox.service import NetprintboxService
 
         user_key = self.request.get('key')
-        with handling_task_exception(user_key):
-            service = NetprintboxService(user_key)
+        user = DropboxUser.get(user_key)
+        logging.debug("Making report for: %s", user.email)
+
+        with handling_task_exception(user):
+            service = NetprintboxService(user)
             service.make_report()
 
 

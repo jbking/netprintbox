@@ -3,7 +3,7 @@ from unittest import TestCase
 from nose.plugins.attrib import attr
 
 from webapp2 import uri_for
-from test_utils import (
+from utils import (
         create_user, create_file_info,
         get_blank_request, set_request_local)
 

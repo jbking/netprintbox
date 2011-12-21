@@ -24,7 +24,6 @@ import tempita
 from netprintbox.settings import (
         TEMPLATE_PATH, ACCOUNT_INFO_PATH, REPORT_PATH)
 from netprintbox.template_utils import get_namespace as get_template_namespace
-from netprintbox.dropbox_utils import ensure_binary_string
 
 
 def load_template(path, namespace={}):
@@ -35,11 +34,14 @@ def load_template(path, namespace={}):
             namespace=n)
 
 
-def normalize_name(path):
-    path = ensure_binary_string(path)
+def normalize_name(path, ext=False):
     if path[0] == '/':
         path = path[1:]
-    return re.sub('[/(「＜＞＆”’」)]', '_', path)
+    path = path.replace('_', '__')
+    path = re.sub(u'[/(「＜＞＆”’」)]', '_', path)
+    if not ext:
+        path = os.path.splitext(path)[0]
+    return path
 
 
 def is_generated_file(path):

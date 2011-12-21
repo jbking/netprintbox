@@ -1,7 +1,7 @@
 from unittest import TestCase
 from nose.plugins.attrib import attr
 
-from test_utils import create_user, create_file_info, create_dropbox_item
+from utils import create_user, create_file_info, create_dropbox_item
 
 
 class TransactionTestBase(TestCase):
@@ -97,7 +97,8 @@ class SyncFeatureTest(TransactionTestBase):
 
         transaction = self._getOUT(context)
 
-        file_info = create_file_info(context.user, rev='prev')
+        file_info = create_file_info(context.user, rev='prev',
+                                     netprint_id='aaa')
 
         transaction._both(create_dropbox_item(path=file_info.path,
                                               bytes=4, rev='rev'),

@@ -4,7 +4,7 @@ from StringIO import StringIO
 from nose.plugins.attrib import attr
 from minimock import mock, restore
 
-from test_utils import create_user
+from utils import create_user
 
 
 class SetupGuideTest(TestCase):

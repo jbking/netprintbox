@@ -67,6 +67,8 @@ class SyncTransaction(object):
             netprint_id = netprint_item['id']
             netprint_name = netprint_item['name']
 
+            logging.debug("File exists on both: %r(%r)", path, rev)
+
             if is_generated_file(path):
                 raise TransactionError(
                         "A generated file %s exists in netprint"\
@@ -105,7 +107,8 @@ class SyncTransaction(object):
                     return
             else:
                 raise TransactionError("Duplicated path? %s" % path)
-            self.context.delete_from_netprint(netprint_id)
+            if netprint_id:
+                self.context.delete_from_netprint(netprint_id)
             self.context.transfer_from_dropbox(path,
                                                limit=self.available_space)
 
@@ -120,6 +123,8 @@ class SyncTransaction(object):
             size = dropbox_item['bytes']
             rev = dropbox_item['rev']
             modified = parse(dropbox_item['modified'])
+
+            logging.debug("File exists on dropbox: %r(%r)", path, rev)
 
             # excludes system generating files at all.
             if is_generated_file(path):
@@ -172,8 +177,13 @@ class SyncTransaction(object):
     def _netprint_only(self, netprint_item):
         def txn():
             netprint_id = netprint_item['id']
+            netprint_name = netprint_item['name']
             query = self.context.user.own_files()\
-                    .filter('netprint_id = ', netprint_id)
+                    .filter('netprint_id = ', netprint_id)\
+                    .filter('netprint_name = ', netprint_name)
+
+            logging.debug("File exists on netprint: %r(%r)",
+                          netprint_name, netprint_id)
 
             if query.count() > 0:
                 # The registered file is removed on dropbox,
@@ -181,7 +191,8 @@ class SyncTransaction(object):
                 for file_info in query:
                     file_info.delete()
                 self.available_space += file_info.size
-                self.context.netprint.delete(netprint_id)
+                if netprint_id:
+                    self.context.netprint.delete(netprint_id)
             else:
                 # An uncontrolled file is found.
                 pass
