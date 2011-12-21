@@ -1,10 +1,4 @@
-import logging
-
 import webapp2 as w
-import httplib2
-
-if logging.getLogger().level <= logging.DEBUG:
-    httplib2.debuglevel = 1
 
 app = w.WSGIApplication([
     w.Route('/dropbox/authorize', 'netprintbox.handlers.AuthHandler',

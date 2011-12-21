@@ -82,6 +82,11 @@ class DropboxFileInfo(db.Model):
     netprint_name = db.StringProperty(required=True)
     last_modified = db.DateTimeProperty(required=True)
 
+    def __repr__(self):
+        return '<%s %r %s>' % (self.__class__.__name__,
+                               self.path,
+                               self.netprint_id,)
+
     @property
     def local_last_modified(self):
         country = self.parent().country

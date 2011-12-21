@@ -1,10 +1,12 @@
 #!/usr/bin/env python
+import logging
 import os
 import sys
 from nose.core import run_exit
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     os.environ['HTTP_HOST'] = 'testhost.testdomain'
     sys.path.insert(0, '/usr/local/google_appengine')
     import dev_appserver
