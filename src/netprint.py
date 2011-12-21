@@ -303,31 +303,36 @@ class Client(object):
         try:
             item_list = []
             for row in self._soup.findAll('tr')[1:]:
-                column_list = row.findAll('td')
-                error_row = False
-                try:
-                    id_column = column_list[2]
-                    if id_column.string is None:
-                        if id_column.findChild(text=u"エラー") is not None:
-                            error_row = True
-                        else:
-                            raise Reload
-                except IndexError:
+                id_field = row.find('input', attrs={'name': 'fc'})
+                if id_field is None:
                     raise Reload
+                id = id_field['value']
+                if id is None:
+                    raise Reload
+
+                column_list = list(row)
+                id_column = column_list[2]
+
+                error_row = id_column.find(text=u"エラー") is not None
+                if not error_row and id_column.string is None:
+                    raise Reload
+
+                name = unicode(column_list[1].string)
+                file_size = unicode(column_list[3].string)
                 if error_row:
-                    id_string = None
-                else:
-                    id_string = unicode(id_column.string)
-                try:
-                    page_numbers = int(column_list[5].string)
-                except ValueError:
+                    page_size = ''
                     page_numbers = 0
-                item_list.append(Item(id_string,
-                                      unicode(column_list[1].string),
-                                      unicode(column_list[3].string),
-                                      unicode(column_list[4].string),
+                else:
+                    page_size = unicode(column_list[4].string)
+                    page_numbers = int(column_list[5].string)
+                valid_date = unicode(column_list[6].string)
+                item_list.append(Item(id,
+                                      name,
+                                      file_size,
+                                      page_size,
                                       page_numbers,
-                                      unicode(column_list[6].string),
+                                      valid_date,
+                                      error_row,
                                      ))
             return item_list
         except Reload:
@@ -420,4 +425,5 @@ Item = namedtuple('Item',
     'file_size '
     'paper_size '
     'page_numbers '
-    'valid_date ')
+    'valid_date '
+    'error ')

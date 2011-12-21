@@ -77,6 +77,26 @@ class ClientTest(TestCase):
         self.assertEqual(item.paper_size, 'A4')
         self.assertEqual(item.page_numbers, 3)
         self.assertEqual(item.valid_date, '2010/10/02')
+        self.assertFalse(item.error)
+
+    @attr('unit', 'light')
+    def test_list_error(self):
+        from BeautifulSoup import BeautifulSoup
+
+        client = self._getOUT()
+        client._soup = BeautifulSoup(load_fixture('data/main_error.html'))
+        client._check_displaying_main_page_then_trim()
+        item_list = client.list()
+        self.assertEqual(len(item_list), 1)
+
+        item = item_list[0]
+        self.assertEqual(item.id, 'QNA7HNEE')
+        self.assertEqual(item.name, unicode('チケット印刷画面', 'utf8'))
+        self.assertEqual(item.file_size, '832KB')
+        self.assertEqual(item.paper_size, '')
+        self.assertEqual(item.page_numbers, 0)
+        self.assertEqual(item.valid_date, '2010/10/02')
+        self.assertTrue(item.error)
 
     @attr('unit', 'light')
     def test_convert_to_encoding(self):
