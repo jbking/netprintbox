@@ -223,6 +223,8 @@ class SyncTransaction(object):
         key_in_netprint_only = key_in_netprint - key_in_dropbox
         key_in_gae = set(info_in_gae)
 
+        # XXX error item should be handled here.
+        #     but, is it dup from making report?
         for key in key_in_both:
             self._both(item_in_dropbox[key], item_in_netprint[key])
 
