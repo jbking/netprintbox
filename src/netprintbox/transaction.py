@@ -65,7 +65,6 @@ class SyncTransaction(object):
             rev = dropbox_item['rev']
             modified = parse(dropbox_item['modified'])
             netprint_id = netprint_item['id']
-            netprint_name = netprint_item['name']
 
             logging.debug(u"File exists on both: %s(%s)", path, rev)
 
@@ -90,8 +89,7 @@ class SyncTransaction(object):
                                             size=size,
                                             state=FileState.NEED_NETPRINT_ID,
                                             last_modified=modified,
-                                            netprint_id=None,
-                                            netprint_name=netprint_name)
+                                            netprint_id=None)
                 file_info.put()
             elif query.count() == 1:
                 file_info = query.get()
@@ -137,7 +135,6 @@ class SyncTransaction(object):
             query = self.context.user.own_files().filter('path = ', path)
             if query.count() == 0:
                 # New file.
-                netprint_name = normalize_name(path)
                 self._capacity_check(size)
                 self.available_space -= size
                 file_info = DropboxFileInfo(parent=self.context.user,
@@ -145,8 +142,7 @@ class SyncTransaction(object):
                                             rev=rev,
                                             size=size,
                                             state=FileState.NEED_NETPRINT_ID,
-                                            last_modified=modified,
-                                            netprint_name=netprint_name)
+                                            last_modified=modified)
                 file_info.put()
             elif query.count() == 1:
                 file_info = query.get()
