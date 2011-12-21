@@ -8,12 +8,12 @@
     <body>
         <h1>step1:ネットプリントユーザ情報の登録</h1>
         {{if error}}
-        <p class="error">ネットプリントユーザ情報が読み取れませんでした。</p>
+        <p class="error">ネットプリントユーザ情報が正しく読み取れませんでした。</p>
         {{else}}
-        <p>"Dropboxディレクトリ/Apps/ネットプリント"ディレクトリを作成し、その中へaccount.iniを配置しました。</p>
+        <p>Dropbox内の「/Apps/ネットプリント」へフォルダを作成し、その中へ設定ファイル(account.ini)を配置しました。</p>
         {{endif}}
-        <p>account.iniにネットプリントのID/パスワードを記入してください。</p>
-        <p>ネットプリントのユーザ情報を正しく入力したら、リンクをクリック。</p>
+        <p>設定ファイル(account.ini)にネットプリントのID/パスワードを記入してください。</p>
+        <p>ネットプリントのユーザ情報を入力したら、リンクをクリック。</p>
         <p class="next_link"><a href="/guide/setup?key={{key}}">&gt;&gt;次へ</a></p>
     </body>
 </html>

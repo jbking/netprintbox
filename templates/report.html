@@ -22,10 +22,11 @@
                     <li data-role="list-divider">{{date}}まで</li>
 {{endif}}
 {{for item in items}}
+{{py:error_on_netprint = item['id'] is None}}
                     <li><h3>{{item['name']}}</h3>
                         <dl>
                             <dt>予約番号</dt>
-{{if item['id'] is None}}
+{{if error_on_netprint}}
                             <dd>ネットプリント上でエラー</dd>
 {{elif item['id'].startswith('FAKE')}}
     {{if item['id'] == 'FAKE:ERROR'}}
@@ -42,10 +43,12 @@
 {{else}}
                             <dd>ネットプリントのみに登録されています</dd>
 {{endif}}
+{{if not error_on_netprint}}
                             <dt>ページ数</dt>
                             <dd>{{item['page_numbers']}}</dd>
                             <dt>用紙サイズ</dt>
                             <dd>{{item['paper_size']}}</dd>
+{{endif}}
                         </dl>
                     </li>
 {{endfor}}
