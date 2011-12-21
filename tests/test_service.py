@@ -4,7 +4,7 @@ from StringIO import StringIO
 from nose.plugins.attrib import attr
 from minimock import mock, restore
 
-from test_utils import (
+from utils import (
         create_user, create_file_info,
         create_netprint_item, create_dropbox_item,
         get_blank_request, set_request_local)

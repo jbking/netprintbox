@@ -1,7 +1,7 @@
 from unittest import TestCase
 from nose.plugins.attrib import attr
 
-from test_utils import create_user, create_file_info, create_dropbox_item
+from utils import create_user, create_file_info, create_dropbox_item
 
 
 class TransactionTestBase(TestCase):

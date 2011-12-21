@@ -5,7 +5,7 @@ from webapp2 import uri_for
 from nose.plugins.attrib import attr
 from minimock import mock, restore
 
-from test_utils import (create_user, get_blank_request)
+from utils import create_user, get_blank_request
 
 
 class AuthorizeHandlerTest(TestCase):
