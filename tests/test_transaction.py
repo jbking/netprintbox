@@ -104,7 +104,7 @@ class SyncFeatureTest(TransactionTestBase):
         transaction._both(create_dropbox_item(path=file_info.path,
                                               bytes=4, rev='rev'),
                           dict(id=file_info.netprint_id,
-                               name=file_info.netprint_name))
+                               name=file_info.as_netprint_name()))
 
         q = context.user.own_files()
         self.assertEqual(q.count(), 1)

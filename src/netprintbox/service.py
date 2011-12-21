@@ -208,10 +208,9 @@ class NetprintboxService(object):
 
     def _make_report(self):
         own_files = list(self.user.own_files())
-        controlled_map = dict((file_info.netprint_name, file_info)
+        controlled_map = dict((file_info.as_netprint_name(), file_info)
                                for file_info in own_files)
-        possible_error_map = dict((normalize_name(file_info.path, ext=True),
-                                   file_info)
+        possible_error_map = dict((file_info.as_netprint_name(True), file_info)
                                   for file_info in own_files)
 
         def txn():
@@ -241,8 +240,10 @@ class NetprintboxService(object):
                     file_info.state = FileState.LATEST
                     file_info.put()
             for file_info in own_files:
-                netprint_name = file_info.netprint_name
-                if netprint_name not in items:
+                netprint_name = file_info.as_netprint_name()
+                netprint_name_error = file_info.as_netprint_name(True)
+                if not (netprint_name in items
+                        or netprint_name_error in items):
                     need_report = True
                     if file_info.state == FileState.LATEST:
                         fake_id = "FAKE:ERROR"

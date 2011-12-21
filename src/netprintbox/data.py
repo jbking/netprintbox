@@ -24,7 +24,7 @@ from oauth.oauth import OAuthToken
 from dateutil import tz
 
 import settings
-from netprintbox.utils import get_namespace, load_template
+from netprintbox.utils import get_namespace, load_template, normalize_name
 from netprintbox.exceptions import BecomePendingUser
 from netprintbox.template_utils import (
         get_namespace as get_template_namespace,)
@@ -79,13 +79,16 @@ class DropboxFileInfo(db.Model):
     size = db.IntegerProperty(indexed=False)
     state = db.IntegerProperty(required=True)
     netprint_id = db.StringProperty()
-    netprint_name = db.StringProperty(required=True)
+    # netprint_name = db.StringProperty()
     last_modified = db.DateTimeProperty(required=True)
 
     def __repr__(self):
         return '<%s %r %s>' % (self.__class__.__name__,
                                self.path,
                                self.netprint_id,)
+
+    def as_netprint_name(self, with_extension=False):
+        return normalize_name(self.path, ext=with_extension)
 
     @property
     def local_last_modified(self):

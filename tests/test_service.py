@@ -84,12 +84,12 @@ class NetprintboxServiceTest(ServiceTestBase):
         self.assertItemsEqual(
             [(item['id'], item['name'], item.get('controlled', False),
               item['last_modified']) for item in result],
-            [('FAKE:WAIT', f1.netprint_name, True,
+            [('FAKE:WAIT', f1.as_netprint_name(), True,
               f1.local_last_modified.strftime(DATETIME_FORMAT)),
-             ('FAKE:ERROR', f2.netprint_name, True,
+             ('FAKE:ERROR', f2.as_netprint_name(), True,
               f2.local_last_modified.strftime(DATETIME_FORMAT)),
              ('uncontrolled', 'uncontrolled', False, None),
-             ('latest', f3.netprint_name, True,
+             ('latest', f3.as_netprint_name(), True,
               f3.local_last_modified.strftime(DATETIME_FORMAT)),
             ])
 

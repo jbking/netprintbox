@@ -210,14 +210,14 @@ class SyncTransaction(object):
                       "netprint_name = %s\n"
                       "dropbox rev = %s\n",
                       file_info.netprint_id,
-                      file_info.netprint_name,
+                      file_info.as_netprint_name(),
                       file_info.rev)
         file_info.delete()
 
     def sync(self):
         item_in_dropbox = _collect_entries(self.context.dropbox.list('/'))
         item_in_netprint = _map_netprint_result(self.context.netprint.list())
-        info_in_gae = dict((file_info.netprint_name, file_info)
+        info_in_gae = dict((file_info.as_netprint_name(), file_info)
                            for file_info in self.context.user.own_files())
 
         key_in_dropbox = set(item_in_dropbox)
