@@ -113,7 +113,7 @@ class MakeReportHandler(w.RequestHandler):
 
 class SetupGuide(w.RequestHandler):
     def get(self):
-        from netprintbox.service import NetprintboxService
+        from netprintbox.service import NetprintboxService, NetprintService
         from netprintbox.exceptions import (
                 DropboxNotFound, InvalidNetprintAccountInfo)
 
@@ -143,7 +143,9 @@ class SetupGuide(w.RequestHandler):
             return
 
         try:
-            service.load_netprint_account_info()
+            (username, password) = service.load_netprint_account_info()
+            netprint_service = NetprintService(username, password)
+            netprint_service.client
         except (DropboxNotFound, InvalidNetprintAccountInfo):
             self.step1(key, error=True)
         else:

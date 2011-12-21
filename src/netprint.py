@@ -251,7 +251,7 @@ class Client(object):
             s = s.encode(self._encoding, 'replace')
         return s
 
-    def login(self, username, password, retry=3):
+    def login(self, username, password):
         """
         Login to the Net print service.
         """
@@ -262,9 +262,10 @@ class Client(object):
 
             soup = BeautifulSoup(content)
             session_field = soup.find('input', attrs={'name': 's'})
-            assert session_field is not None
+            assert session_field
 
             self.session_key = session_field['value']
+            assert self.session_key
         except:
             raise LoginFailure("username or password is wrong.")
         self._soup = soup  # update soup.
