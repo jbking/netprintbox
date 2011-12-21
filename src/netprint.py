@@ -357,6 +357,7 @@ class Client(object):
             'delexec.y': 1})
 
     def send(self, path_or_file,
+             file_name=None,
              paper_size=PaperSize.A4,
              color=Color.choice_at_printing,
              reserversion_number=ReservationNumber.AlphaNum,
@@ -378,7 +379,11 @@ class Client(object):
             raise ValueError("unknown value of path_or_file")
 
         # wrap to set the name.
-        name = self.ensure_encoding(os.path.split(f.name)[-1])
+        if file_name:
+            name = file_name
+        else:
+            name = f.name
+        name = self.ensure_encoding(os.path.split(name)[-1])
         f = StringIO(f.read())
         f.name = name
 

@@ -93,8 +93,9 @@ class NetprintService(object):
             color = Color.color
         else:
             color = Color.choice_at_printing
-        file_obj.name = normalize_name(file_obj.name, ext=True)
+        file_name = normalize_name(file_obj.name, ext=True)
         return self.client.send(file_obj,
+                                file_name=file_name,
                                 color=color,
                                 paper_size=paper_size)
 

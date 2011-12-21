@@ -37,6 +37,7 @@ def load_template(path, namespace={}):
 def normalize_name(path, ext=False):
     if path[0] == '/':
         path = path[1:]
+    path = path.replace('_', '__')
     path = re.sub(u'[/(「＜＞＆”’」)]', '_', path)
     if not ext:
         path = os.path.splitext(path)[0]

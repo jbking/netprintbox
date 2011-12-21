@@ -629,8 +629,8 @@ class NetprintServiceTest(ServiceTestBase):
 
         class client(object):
             @staticmethod
-            def send(file_obj, color=None, paper_size=None):
-                result.append((file_obj, color, paper_size))
+            def send(file_obj, file_name=None, color=None, paper_size=None):
+                result.append((file_obj, file_name, color, paper_size))
 
         fake = StringIO('fake')
         fake.name = '/A4/foo.doc'
@@ -640,5 +640,6 @@ class NetprintServiceTest(ServiceTestBase):
         service.put(fake, PaperSize.A4)
 
         file_obj = result[0][0]
+        file_name = result[0][1]
         self.assertEqual(file_obj.read(), 'fake')
-        self.assertEqual(file_obj.name, normalize_name(fake.name, ext=True))
+        self.assertEqual(file_name, normalize_name(fake.name, ext=True))
