@@ -128,7 +128,7 @@ class SyncTransaction(object):
             rev = dropbox_item['rev']
             modified = parse(dropbox_item['modified'])
 
-            logging.debug("File exists on dropbox: %r(%r)", path, rev)
+            logging.debug(u"File exists on dropbox: %s(%s)", path, rev)
 
             # excludes system generating files at all.
             if is_generated_file(path):
