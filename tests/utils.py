@@ -22,11 +22,11 @@ def create_user(**kwargs):
 
 def create_file_info(user, **kwargs):
     default = {
-            'path': '/path',
+            'path': '/A4/path.doc',
             'rev': 'rev',
             'size': 1,
             'state': data.FileState.NEED_NETPRINT_ID,
-            'netprint_name': 'path',
+            'netprint_name': 'A4_path',
             'last_modified': datetime.now(),
         }
     params = dict(default)

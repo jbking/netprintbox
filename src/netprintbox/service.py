@@ -88,12 +88,13 @@ class NetprintService(object):
         return self.client.delete(id)
 
     def put(self, file_obj, paper_size):
-        logging.debug(u"Putting file to Netprint: %r", file_obj.name)
+        file_name = normalize_name(file_obj.name, ext=True)
+        logging.debug(u"Putting file to Netprint: %r as %r",
+                      file_obj.name, file_name)
         if paper_size == PaperSize.L:
             color = Color.color
         else:
             color = Color.choice_at_printing
-        file_name = normalize_name(file_obj.name, ext=True)
         return self.client.send(file_obj,
                                 file_name=file_name,
                                 color=color,
