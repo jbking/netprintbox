@@ -155,7 +155,7 @@ class SyncTransaction(object):
                     file_info.state = FileState.NEED_NETPRINT_ID
                     file_info.last_modified = modified
                     file_info.put()
-                elif file_info.netprint_id is None:
+                elif file_info.state == FileState.NEED_NETPRINT_ID:
                     # Waiting for id assigning.
                     return
                 else:

@@ -18,7 +18,6 @@
 """
 
 import os
-import logging
 import hashlib
 from httplib import HTTPException
 from StringIO import StringIO
@@ -210,6 +209,9 @@ class NetprintboxService(object):
         own_files = list(self.user.own_files())
         controlled_map = dict((file_info.netprint_name, file_info)
                                for file_info in own_files)
+        possible_error_map = dict((normalize_name(file_info.path, ext=True),
+                                  file_info)
+                                  for file_info in own_files)
         waiting_map = dict((file_info.netprint_name, file_info)
                            for file_info in own_files
                            if file_info.state == FileState.NEED_NETPRINT_ID)
@@ -231,6 +233,10 @@ class NetprintboxService(object):
                     item_dict['controlled'] = True
                     item_dict['last_modified'] = file_info.local_last_modified\
                             .strftime(DATETIME_FORMAT)
+                elif netprint_name in possible_error_map:
+                    logging.error("Hit errror: %r", netprint_name)
+                    item_dict['controlled'] = False
+                    item_dict['last_modified'] = None
                 else:
                     item_dict['controlled'] = False
                     item_dict['last_modified'] = None
