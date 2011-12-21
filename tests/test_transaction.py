@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 from unittest import TestCase
 from nose.plugins.attrib import attr
 
@@ -237,7 +238,7 @@ class SyncFeatureTest(TransactionTestBase):
         # don't affect anything when only netprint has a file.
         # its out of scope.
         transaction._netprint_only(dict(id='original_id',
-                                        name='original_name'))
+                                        name=u'オリジナル名'))
 
         q = context.user.own_files()
         self.assertEqual(q.count(), 0)

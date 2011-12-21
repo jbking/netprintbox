@@ -211,11 +211,8 @@ class NetprintboxService(object):
         controlled_map = dict((file_info.netprint_name, file_info)
                                for file_info in own_files)
         possible_error_map = dict((normalize_name(file_info.path, ext=True),
-                                  file_info)
+                                   file_info)
                                   for file_info in own_files)
-        waiting_map = dict((file_info.netprint_name, file_info)
-                           for file_info in own_files
-                           if file_info.state == FileState.NEED_NETPRINT_ID)
 
         def txn():
             items = {}
@@ -224,24 +221,25 @@ class NetprintboxService(object):
                 item_dict = item._asdict()
                 netprint_id = item_dict['id']
                 netprint_name = item_dict['name']
+                netprint_error = item_dict['error']
+
+                items[netprint_name] = item_dict
                 if netprint_name in controlled_map:
                     file_info = controlled_map[netprint_name]
-                    if netprint_name in waiting_map:
-                        # Set netprint_id by latest result.
-                        file_info.netprint_id = netprint_id
-                        file_info.state = FileState.LATEST
-                        file_info.put()
-                    item_dict['controlled'] = True
-                    item_dict['last_modified'] = file_info.local_last_modified\
-                            .strftime(DATETIME_FORMAT)
-                elif netprint_name in possible_error_map:
-                    logging.error("Hit errror: %r", netprint_name)
-                    item_dict['controlled'] = False
-                    item_dict['last_modified'] = None
+                elif netprint_error and netprint_name in possible_error_map:
+                    file_info = possible_error_map[netprint_name]
+                    item_dict['error'] = True
                 else:
-                    item_dict['controlled'] = False
                     item_dict['last_modified'] = None
-                items[netprint_name] = item_dict
+                    continue
+                item_dict['controlled'] = True
+                item_dict['last_modified'] = file_info.local_last_modified\
+                        .strftime(DATETIME_FORMAT)
+                if file_info.state == FileState.NEED_NETPRINT_ID:
+                    # Set netprint_id by latest result.
+                    file_info.netprint_id = netprint_id
+                    file_info.state = FileState.LATEST
+                    file_info.put()
             for file_info in own_files:
                 netprint_name = file_info.netprint_name
                 if netprint_name not in items:
@@ -255,8 +253,8 @@ class NetprintboxService(object):
                             'id': fake_id,
                             'controlled': True,
                             'valid_date': None,
-                            'page_numbers': '-',
-                            'paper_size': '-',
+                            'page_numbers': 0,
+                            'paper_size': '',
                             'last_modified': file_info.local_last_modified\
                                     .strftime(DATETIME_FORMAT),
                             }

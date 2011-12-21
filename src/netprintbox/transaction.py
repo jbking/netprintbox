@@ -67,16 +67,20 @@ class SyncTransaction(object):
             netprint_id = netprint_item['id']
             netprint_name = netprint_item['name']
 
-            logging.debug("File exists on both: %r(%r)", path, rev)
+            logging.debug(u"File exists on both: %s(%s)", path, rev)
 
             if is_generated_file(path):
                 raise TransactionError(
-                        "A generated file %s exists in netprint"\
+                        u"A generated file %s exists in netprint"\
                         % netprint_item['name'])
+
+            if netprint_id is None:
+                raise TransactionError("netprint_id must not be None: %r",
+                                       netprint_item)
 
             query = self.context.user.own_files().filter('path = ', path)
             if query.count() == 0:
-                # Files are found by same identifier.
+                # Files are found on each side but gae by same identifier.
                 # In that case, assume dropbox's file is newer.
                 self._capacity_check(size)
                 self.available_space -= size
@@ -106,16 +110,16 @@ class SyncTransaction(object):
                     # Unmodified.
                     return
             else:
-                raise TransactionError("Duplicated path? %s" % path)
-            if netprint_id:
-                self.context.delete_from_netprint(netprint_id)
+                raise TransactionError("Duplicated path?: %r" % dropbox_item)
+
+            self.context.delete_from_netprint(netprint_id)
             self.context.transfer_from_dropbox(path,
                                                limit=self.available_space)
 
         try:
             db.run_in_transaction(txn)
         except UnsupportedFile:
-            logging.exception("Got an unsupported file %r", dropbox_item)
+            logging.exception("Got an unsupported file: %r", dropbox_item)
 
     def _dropbox_only(self, dropbox_item):
         def txn():
@@ -177,12 +181,15 @@ class SyncTransaction(object):
     def _netprint_only(self, netprint_item):
         def txn():
             netprint_id = netprint_item['id']
+            if netprint_id is None:
+                raise TransactionError("netprint_id must not be None: %r",
+                                       netprint_item)
+
             netprint_name = netprint_item['name']
             query = self.context.user.own_files()\
-                    .filter('netprint_id = ', netprint_id)\
-                    .filter('netprint_name = ', netprint_name)
+                    .filter('netprint_id = ', netprint_id)
 
-            logging.debug("File exists on netprint: %r(%r)",
+            logging.debug(u"File exists on netprint: %s(%s)",
                           netprint_name, netprint_id)
 
             if query.count() > 0:
@@ -199,12 +206,12 @@ class SyncTransaction(object):
         db.run_in_transaction(txn)
 
     def _gae_only(self, file_info):
-        logging.info("Remove an orphan data: netprint_id = %s\n"
-                     "netprint_name = %r\n"
-                     "dropbox rev = %s\n",
-                     file_info.netprint_id,
-                     file_info.netprint_name,
-                     file_info.rev)
+        logging.info(u"Remove an orphan data: netprint_id = %s\n"
+                      "netprint_name = %s\n"
+                      "dropbox rev = %s\n",
+                      file_info.netprint_id,
+                      file_info.netprint_name,
+                      file_info.rev)
         file_info.delete()
 
     def sync(self):

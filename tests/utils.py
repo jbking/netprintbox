@@ -45,6 +45,7 @@ def create_netprint_item(**kwargs):
             'paper_size': 'A4',
             'page_numbers': 1,
             'valid_date': '1900/01/01',
+            'error': False,
         }
     params = dict(default)
     params.update(kwargs)
