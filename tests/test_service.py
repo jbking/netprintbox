@@ -62,7 +62,7 @@ class NetprintboxServiceTest(ServiceTestBase):
                 return [
                         create_netprint_item(
                             id='uncontrolled',
-                            name='uncontrolled.jpg'),
+                            name='uncontrolled'),
                         create_netprint_item(
                             id='latest',
                             name=normalize_name('/latest.data')),
@@ -82,13 +82,13 @@ class NetprintboxServiceTest(ServiceTestBase):
         (need_report, result) = service._make_report()
         self.assertTrue(need_report)
         self.assertItemsEqual(
-            [(item['id'], item['name'], item['controlled'],
+            [(item['id'], item['name'], item.get('controlled', False),
               item['last_modified']) for item in result],
             [('FAKE:WAIT', f1.netprint_name, True,
               f1.local_last_modified.strftime(DATETIME_FORMAT)),
              ('FAKE:ERROR', f2.netprint_name, True,
               f2.local_last_modified.strftime(DATETIME_FORMAT)),
-             ('uncontrolled', 'uncontrolled.jpg', False, None),
+             ('uncontrolled', 'uncontrolled', False, None),
              ('latest', f3.netprint_name, True,
               f3.local_last_modified.strftime(DATETIME_FORMAT)),
             ])

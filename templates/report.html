@@ -22,7 +22,7 @@
                     <li data-role="list-divider">{{date}}まで</li>
 {{endif}}
 {{for item in items}}
-{{py:error_on_netprint = item['id'] is None}}
+{{py:error_on_netprint = item.get('error', False)}}
                     <li><h3>{{item['name']}}</h3>
                         <dl>
                             <dt>予約番号</dt>
@@ -38,7 +38,7 @@
                             <dd>{{item['id']}}</dd>
 {{endif}}
                             <dt>登録日時</dt>
-{{if item['controlled']}}
+{{if item.get('controlled', False)}}
                             <dd>{{item['last_modified']}}</dd>
 {{else}}
                             <dd>ネットプリントのみに登録されています</dd>
