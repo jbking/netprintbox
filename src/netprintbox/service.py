@@ -18,6 +18,7 @@
 """
 
 import os
+import logging
 import hashlib
 from httplib import HTTPException
 from StringIO import StringIO

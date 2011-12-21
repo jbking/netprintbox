@@ -151,6 +151,8 @@ class SyncFeatureTest(TransactionTestBase):
 
     @attr('unit', 'light')
     def test_expired_file(self):
+        from netprintbox.data import FileState
+
         deleted = []
 
         class context(object):
@@ -162,7 +164,9 @@ class SyncFeatureTest(TransactionTestBase):
 
         transaction = self._getOUT(context)
 
-        file_info = create_file_info(context.user, netprint_id='netprint_id')
+        file_info = create_file_info(context.user,
+                                     state=FileState.LATEST,
+                                     netprint_id='netprint_id')
 
         # when a file was removed on netprint,
         # remove data and the file on dropbox if exists.

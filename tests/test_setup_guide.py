@@ -52,9 +52,16 @@ class SetupGuideTest(TestCase):
                 if self.state == 3:
                     self.state += 1
                     raise DropboxNotFound
+                else:
+                    return ('username', 'password')
+
+        class netprint_service(object):
+            client = object()
 
         mock('netprintbox.service.NetprintboxService',
              returns=service())
+        mock('netprintbox.service.NetprintService',
+             returns=netprint_service)
         mock('google.appengine.api.taskqueue.add')
 
     def tearDown(self):
