@@ -21,7 +21,6 @@ Box
 
 File
 ----
-- valid filename?? (UI)
 - to be put on netprint.
 - to be removed when it removed on netprint.
 - to be removed on netprint when it removed on Dropbox.
@@ -37,5 +36,5 @@ File
 
 Idea
 ----
-- mkdir sub-directories as paper size.
+- mkdir sub-directories as paper size. (done)
 - store mail address in ini for notification.
