@@ -232,9 +232,11 @@ class NetprintboxServiceTest(ServiceTestBase):
         class dropbox(object):
             @staticmethod
             def list(path):
-                return {'contents': [
-                    create_dropbox_item(path='/A4', is_dir=True),
-                    ]}
+                root_dir = app_dir()
+                root_dir['contents'] = filter(
+                        lambda x: x['is_dir'] and x['path'] == u'/A4',
+                        root_dir['contents'])
+                return root_dir
 
             @staticmethod
             def create_folder(path):

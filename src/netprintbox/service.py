@@ -89,7 +89,7 @@ class NetprintService(object):
 
     def put(self, file_obj, paper_size):
         file_name = normalize_name(file_obj.name, ext=True)
-        logging.debug(u"Putting file to Netprint: %r as %r",
+        logging.debug(u"Putting file to Netprint: %s as %s",
                       file_obj.name, file_name)
         if paper_size == PaperSize.L:
             color = Color.color
