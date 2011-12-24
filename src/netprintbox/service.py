@@ -333,8 +333,18 @@ class DropboxService(object):
     def client(self, client):
         self._client = client
 
+    @property
+    def cached_list(self):
+        try:
+            return getattr(self, '_cached_list')
+        except AttributeError:
+            self._cached_list = {}
+            return self._cached_list
+
     @handle_error_response
     def list(self, path, recursive=True):
+        if path in self.cached_list:
+            return self.cached_list[path]
         if recursive:
             result = self.list(path, recursive=False)
             if result['is_dir']:
@@ -345,47 +355,51 @@ class DropboxService(object):
                 traverse(_ls_rec, result)
             return result
         else:
-            path = ensure_binary_string(path)
-            logging.debug(u"Listing metadata of: %r", path)
-            return self.client.metadata(path)
+            path_for_dropbox = ensure_binary_string(path)
+            logging.debug(u"Listing metadata of: %s", path)
+            result = self.client.metadata(path_for_dropbox)
+            self.cached_list[path] = result
+            return result
 
     @handle_error_response
     def obtain(self, path, limit=None):
-        path = ensure_binary_string(path)
-        logging.debug(u"Obtaining file: %r", path)
+        path_for_dropbox = ensure_binary_string(path)
+        logging.debug(u"Obtaining file: %s", path)
         metadata = self.list(path)
         if limit and metadata['bytes'] > limit:
             raise OverLimit("The response contains %d bytes data."\
                             % metadata['bytes'])
-        res = self.client.get_file(path)
+        res = self.client.get_file(path_for_dropbox)
         file_obj = StringIO(res.read())
         file_obj.name = path
         return file_obj
 
     @handle_error_response
     def put(self, path, file_obj, overwrite=True):
-        path = ensure_binary_string(path)
-        logging.debug(u"Putting file to Dropbox: %r", path)
-        return self.client.put_file(path, file_obj, overwrite=overwrite)
+        path_for_dropbox = ensure_binary_string(path)
+        logging.debug(u"Putting file to Dropbox: %s", path)
+        return self.client.put_file(path_for_dropbox,
+                                    file_obj, overwrite=overwrite)
 
     @handle_error_response
     def delete(self, path):
-        path = ensure_binary_string(path)
-        logging.debug(u"Deleting file from Dropbox: %r", path)
-        return self.client.file_delete(path)
+        path_for_dropbox = ensure_binary_string(path)
+        logging.debug(u"Deleting file from Dropbox: %s", path)
+        return self.client.file_delete(path_for_dropbox)
 
     @handle_error_response
     def create_folder(self, path):
-        path = ensure_binary_string(path)
-        logging.debug(u"Creating a directory: %r", path)
-        return self.client.file_create_folder(path)
+        path_for_dropbox = ensure_binary_string(path)
+        logging.debug(u"Creating a directory: %s", path)
+        return self.client.file_create_folder(path_for_dropbox)
 
     @handle_error_response
     def move(self, from_path, to_path):
-        from_path = ensure_binary_string(from_path)
-        to_path = ensure_binary_string(to_path)
-        logging.debug(u"Moving into: %r %r", from_path, to_path)
-        return self.client.file_move(from_path, to_path)
+        from_path_for_dropbox = ensure_binary_string(from_path)
+        to_path_for_dropbox = ensure_binary_string(to_path)
+        logging.debug(u"Moving into: %s %s", from_path, to_path)
+        return self.client.file_move(from_path_for_dropbox,
+                                     to_path_for_dropbox)
 
     @classmethod
     def get_session(cls):
