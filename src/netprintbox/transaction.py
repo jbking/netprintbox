@@ -41,7 +41,10 @@ def _map_netprint_result(data):
     result = {}
     for item in data:
         dict_item = item._asdict()
-        result[dict_item['name']] = dict_item
+        if item.error:
+            result[dict_item['name'].split('.')[0]] = dict_item
+        else:
+            result[dict_item['name']] = dict_item
     return result
 
 
@@ -223,8 +226,6 @@ class SyncTransaction(object):
         key_in_netprint_only = key_in_netprint - key_in_dropbox
         key_in_gae = set(info_in_gae)
 
-        # XXX error item should be handled here.
-        #     but, is it dup from making report?
         for key in key_in_both:
             self._both(item_in_dropbox[key], item_in_netprint[key])
 
