@@ -26,7 +26,6 @@ def create_file_info(user, **kwargs):
             'rev': 'rev',
             'size': 1,
             'state': data.FileState.NEED_NETPRINT_ID,
-            'netprint_name': 'A4_path',
             'last_modified': datetime.now(),
         }
     params = dict(default)

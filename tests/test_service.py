@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 from unittest import TestCase
 from StringIO import StringIO
 
@@ -320,6 +321,39 @@ class NetprintboxServiceTest(ServiceTestBase):
         self.assertItemsEqual(obtain_result,
                               ['/A4/foo.doc', '/B5/baz.pdf'])
         self.assertItemsEqual(return_fake, put_result)
+
+    @attr('unit', 'light')
+    def test_treat_errors_on_netprint(self):
+        user = create_user()
+        file_info = create_file_info(user, path=u'/A4/テスト.doc')
+
+        service = self._getOUT(user)
+
+        class dropbox(object):
+            @staticmethod
+            def list(path, recursive=None):
+                root_dir = app_dir()
+                for dir in root_dir['contents']:
+                    if dir['path'] == u'/A4':
+                        a4_dir = dir
+                        break
+                else:
+                    self.fail('No A4 directory')
+                a4_dir['contents'].append(
+                        create_dropbox_item(
+                            path=file_info.path.encode('utf-8')))
+                return root_dir
+
+        class netprint(object):
+            @staticmethod
+            def list():
+                return [create_netprint_item(
+                            name=file_info.as_netprint_name(True),
+                            error=True)]
+
+        service.dropbox = dropbox
+        service.netprint = netprint
+        service.sync()
 
 
 class DropboxTestBase(ServiceTestBase):
