@@ -89,7 +89,7 @@ class NetprintService(object):
 
     def put(self, file_obj, paper_size):
         file_name = normalize_name(file_obj.name, ext=True)
-        logging.debug(u"Putting file to Netprint: %r as %r",
+        logging.debug(u"Putting file to Netprint: %s as %s",
                       file_obj.name, file_name)
         if paper_size == PaperSize.L:
             color = Color.color
@@ -141,7 +141,6 @@ class NetprintboxService(object):
         raise InvalidNetprintAccountInfo
 
     def sync(self):
-        # XXX pass sub directory name as paper size annotation to netprint.
         self.ensure_paper_size_directories()
         self.move_files_on_root_into_A4()
         transaction = SyncTransaction(self)

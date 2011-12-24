@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from netprint import Item
+from netprint import Item, PaperSize
 from netprintbox import data
 
 
@@ -26,7 +26,6 @@ def create_file_info(user, **kwargs):
             'rev': 'rev',
             'size': 1,
             'state': data.FileState.NEED_NETPRINT_ID,
-            'netprint_name': 'A4_path',
             'last_modified': datetime.now(),
         }
     params = dict(default)
@@ -78,3 +77,18 @@ def set_request_local(request=None):
     if request is None:
         request = get_blank_request()
     _local.request = request
+
+
+def app_dir():
+    return {
+        'path': u'/',
+        'is_dir': True,
+        'contents': [
+            {
+                'path': u'/%s' % attr_name,
+                'is_dir': True,
+                 'contents': [],
+             }
+             for attr_name in dir(PaperSize)
+             if not attr_name.startswith('_')
+         ]}

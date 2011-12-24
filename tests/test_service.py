@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 from unittest import TestCase
 from StringIO import StringIO
 
@@ -7,7 +8,8 @@ from minimock import mock, restore
 from utils import (
         create_user, create_file_info,
         create_netprint_item, create_dropbox_item,
-        get_blank_request, set_request_local)
+        get_blank_request, set_request_local,
+        app_dir)
 
 
 class ServiceTestBase(TestCase):
@@ -231,9 +233,11 @@ class NetprintboxServiceTest(ServiceTestBase):
         class dropbox(object):
             @staticmethod
             def list(path):
-                return {'contents': [
-                    create_dropbox_item(path='/A4', is_dir=True),
-                    ]}
+                root_dir = app_dir()
+                root_dir['contents'] = filter(
+                        lambda x: x['is_dir'] and x['path'] == u'/A4',
+                        root_dir['contents'])
+                return root_dir
 
             @staticmethod
             def create_folder(path):
@@ -262,20 +266,14 @@ class NetprintboxServiceTest(ServiceTestBase):
             @staticmethod
             def list(path):
                 self.assertEqual(path, '/')
-                root_dict = {'is_dir': True,
-                             'contents': []}
+                root_dir = app_dir()
                 for generated_path in (ACCOUNT_INFO_PATH, REPORT_PATH):
-                    root_dict['contents'].append(
+                    root_dir['contents'].append(
                             create_dropbox_item(path=generated_path))
-                for paper_size_name in [attr_name
-                                        for attr_name in dir(PaperSize)
-                                        if not attr_name.startswith('_')]:
-                    root_dict['contents'].append(
-                            create_dropbox_item(path='/' + paper_size_name))
                 for target_path in ('/foo.doc', '/bar.xls'):
-                    root_dict['contents'].append(
+                    root_dir['contents'].append(
                             create_dropbox_item(path=target_path))
-                return root_dict
+                return root_dir
 
             @staticmethod
             def move(from_path, to_path):
@@ -323,6 +321,77 @@ class NetprintboxServiceTest(ServiceTestBase):
         self.assertItemsEqual(obtain_result,
                               ['/A4/foo.doc', '/B5/baz.pdf'])
         self.assertItemsEqual(return_fake, put_result)
+
+    @attr('unit', 'light')
+    def test_treat_errors_on_netprint_sync(self):
+        user = create_user()
+        file_info = create_file_info(user, path=u'/A4/テスト.doc')
+
+        service = self._getOUT(user)
+
+        class dropbox(object):
+            @staticmethod
+            def list(path, recursive=None):
+                root_dir = app_dir()
+                for dir in root_dir['contents']:
+                    if dir['path'] == u'/A4':
+                        a4_dir = dir
+                        break
+                else:
+                    self.fail('No A4 directory')
+                a4_dir['contents'].append(
+                        create_dropbox_item(
+                            path=file_info.path))
+                return root_dir
+
+        class netprint(object):
+            @staticmethod
+            def list():
+                return [create_netprint_item(
+                            name=file_info.as_netprint_name(True),
+                            error=True)]
+
+        service.dropbox = dropbox
+        service.netprint = netprint
+        service.sync()
+
+    @attr('unit', 'light')
+    def test_treat_errors_on_netprint_making_report(self):
+        user = create_user()
+        file_info = create_file_info(user, path=u'/A4/テスト.doc')
+
+        service = self._getOUT(user)
+
+        class dropbox(object):
+            @staticmethod
+            def list(path, recursive=None):
+                root_dir = app_dir()
+                for dir in root_dir['contents']:
+                    if dir['path'] == u'/A4':
+                        a4_dir = dir
+                        break
+                else:
+                    self.fail('No A4 directory')
+                a4_dir['contents'].append(
+                        create_dropbox_item(
+                            path=file_info.path))
+                return root_dir
+
+        class netprint(object):
+            @staticmethod
+            def list():
+                return [create_netprint_item(
+                            name=file_info.as_netprint_name(True),
+                            error=True)]
+
+        service.dropbox = dropbox
+        service.netprint = netprint
+        (need_report, result) = service._make_report()
+        self.assertTrue(need_report)
+        self.assertEqual(len(result), 1)
+        item = result[0]
+        self.assertTrue(item['error'])
+        self.assertTrue(item['controlled'])
 
 
 class DropboxTestBase(ServiceTestBase):
