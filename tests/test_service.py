@@ -7,7 +7,8 @@ from minimock import mock, restore
 from utils import (
         create_user, create_file_info,
         create_netprint_item, create_dropbox_item,
-        get_blank_request, set_request_local)
+        get_blank_request, set_request_local,
+        app_dir)
 
 
 class ServiceTestBase(TestCase):
@@ -262,20 +263,14 @@ class NetprintboxServiceTest(ServiceTestBase):
             @staticmethod
             def list(path):
                 self.assertEqual(path, '/')
-                root_dict = {'is_dir': True,
-                             'contents': []}
+                root_dir = app_dir()
                 for generated_path in (ACCOUNT_INFO_PATH, REPORT_PATH):
-                    root_dict['contents'].append(
+                    root_dir['contents'].append(
                             create_dropbox_item(path=generated_path))
-                for paper_size_name in [attr_name
-                                        for attr_name in dir(PaperSize)
-                                        if not attr_name.startswith('_')]:
-                    root_dict['contents'].append(
-                            create_dropbox_item(path='/' + paper_size_name))
                 for target_path in ('/foo.doc', '/bar.xls'):
-                    root_dict['contents'].append(
+                    root_dir['contents'].append(
                             create_dropbox_item(path=target_path))
-                return root_dict
+                return root_dir
 
             @staticmethod
             def move(from_path, to_path):
