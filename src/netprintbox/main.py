@@ -1,6 +1,6 @@
 import webapp2 as w
 
-app = w.WSGIApplication([
+routes = (
     w.Route('/dropbox/authorize', 'netprintbox.handlers.AuthHandler',
             name='authorize'),
     w.Route(r'/dropbox/callback', 'netprintbox.handlers.AuthCallbackHandler',
@@ -15,4 +15,4 @@ app = w.WSGIApplication([
             name='setup_guide'),
     w.Route(r'/', 'netprintbox.handlers.TopHandler',
             name='top'),
-    ])
+)
