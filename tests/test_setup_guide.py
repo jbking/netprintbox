@@ -83,17 +83,17 @@ class SetupGuideTest(TestCase):
         user = create_user()
         response = app.get_response('/guide/setup?key=%s' % user.access_key)
         self.assertEqual(response.status_int, 200)
-        self.assertRegexpMatches(response.body, re.compile('step1'))
+        self.assertRegexpMatches(response.body, re.compile('Step1'))
 
         # fall back to step1 if login failed.
         response = app.get_response('/guide/setup?key=%s' % user.access_key)
         self.assertEqual(response.status_int, 200)
-        self.assertRegexpMatches(response.body, re.compile('step1'))
+        self.assertRegexpMatches(response.body, re.compile('Step1'))
 
         # login succeed.
         response = app.get_response('/guide/setup?key=%s' % user.access_key)
         self.assertEqual(response.status_int, 200)
-        self.assertRegexpMatches(response.body, re.compile('step2'))
+        self.assertRegexpMatches(response.body, re.compile('Step2'))
 
 
 class SetupGuidePendingTest(TestCase):
