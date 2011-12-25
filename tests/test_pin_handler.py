@@ -1,0 +1,47 @@
+import json
+from unittest import TestCase
+
+from nose.plugins.attrib import attr
+
+from utils import create_user, create_file_info, get_blank_request, uri_for
+
+
+class PinHandlerTest(TestCase):
+    def setUp(self):
+        from google.appengine.ext.testbed import Testbed
+
+        self.testbed = Testbed()
+        self.testbed.activate()
+        self.testbed.init_datastore_v3_stub()
+
+    def tearDown(self):
+        self.testbed.deactivate()
+
+    def _getAUT(self):
+        from netprintbox.main import app
+        return app
+
+    @attr('functional', 'light')
+    def test_it(self):
+        from netprintbox.data import DropboxFileInfo
+
+        user = create_user()
+        file_info = create_file_info(user)
+        app = self._getAUT()
+        uri = uri_for('pin')
+
+        def post(key, pin):
+            request = get_blank_request(uri)
+            request.method = 'POST'
+            request.content_type = 'application/json'
+            request.body = json.dumps({'file_info_key': key,
+                                       'pin': pin})
+            response = request.get_response(app)
+            self.assertEqual(response.status_int, 200)
+            self.assertEqual(response.headers['Access-Control-Allow-Origin'],
+                             '*')
+            modified_file_info = DropboxFileInfo.get(key)
+            self.assertEqual(modified_file_info.pin, pin)
+
+        post(str(file_info.key()), True)
+        post(str(file_info.key()), False)
