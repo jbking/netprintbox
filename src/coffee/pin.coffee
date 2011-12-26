@@ -2,17 +2,20 @@ class Pin
     constructor: (@el) ->
 
     toggle: =>
-        $.post window.pin_api_url
-            , JSON.stringify(
-                'pin': if @el.dataset.netprintPin == "on"
-                            "off"
-                       else
-                            "on"
-                'file_key': @el.dataset.netprintKey)
-            , (data, status) =>
-                if status == "success"
-                    @el.dataset.netprintPin = JSON.parse(data).pin
-                    @update_face()
+        pin_state = if @el.dataset.netprintPin == "on"
+                         "off"
+                     else
+                         "on"
+
+        request_data = JSON.stringify
+            pin: pin_state
+            file_key: @el.dataset.netprintKey
+
+        callback = (data) =>
+            @el.dataset.netprintPin = data.pin
+            @update_face()
+
+        $.post window.pin_api_url, request_data, callback, 'json'
 
     update_face: =>
         # Because default icon value is arrow-r, to appear the plus icon, remove the class first.
