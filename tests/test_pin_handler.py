@@ -30,7 +30,7 @@ class PinHandlerTest(TestCase):
         app = self._getAUT()
         uri = uri_for('pin')
 
-        def post(key, pin):
+        def post(key, pin, expected):
             request = get_blank_request(uri)
             request.method = 'POST'
             request.content_type = 'application/json'
@@ -40,8 +40,13 @@ class PinHandlerTest(TestCase):
             self.assertEqual(response.status_int, 200)
             self.assertEqual(response.headers['Access-Control-Allow-Origin'],
                              '*')
-            modified_file_info = DropboxFileInfo.get(key)
-            self.assertEqual(modified_file_info.pin, pin)
+            self.assertEqual(response.headers['Content-Type'],
+                             'application/json')
+            result = json.loads(response.body)
+            self.assertEqual(result['pin'], pin)
 
-        post(str(file_info.key()), True)
-        post(str(file_info.key()), False)
+            modified_file_info = DropboxFileInfo.get(key)
+            self.assertEqual(modified_file_info.pin, expected)
+
+        post(str(file_info.key()), 'on', True)
+        post(str(file_info.key()), 'off', False)

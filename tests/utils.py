@@ -63,11 +63,11 @@ def create_dropbox_item(**kwargs):
     return params
 
 
-def get_blank_request():
+def get_blank_request(path='/'):
     from netprintbox.main import app
     from webapp2 import Request
 
-    request = Request.blank('/')
+    request = Request.blank(path)
     request.app = app
     return request
 
@@ -77,6 +77,13 @@ def set_request_local(request=None):
     if request is None:
         request = get_blank_request()
     _local.request = request
+
+
+def uri_for(name, *args, **kwargs):
+    """Foolish wrapper of webapp2.uri_for()"""
+    from webapp2 import uri_for
+    request = get_blank_request()
+    return uri_for(name, _request=request, *args, **kwargs)
 
 
 def app_dir():

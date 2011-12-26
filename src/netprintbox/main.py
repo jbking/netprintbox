@@ -16,6 +16,8 @@ routes = (
             name='setup_guide'),
     w.Route(r'/', 'netprintbox.handlers.TopHandler',
             name='top'),
+    w.Route(r'/pin', 'netprintbox.handlers.PinHandler',
+            name='pin'),
 )
 
 # Into debug mode when this is running under SDK.
@@ -35,5 +37,4 @@ class CustomApplication(w.WSGIApplication):
         return super(CustomApplication, self).\
                 __call__(environ, start_response)
 
-from netprintbox.main import routes
 app = CustomApplication(routes, debug=debug)

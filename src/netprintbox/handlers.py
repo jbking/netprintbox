@@ -16,6 +16,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import json
 from contextlib import contextmanager
 import logging
 import random
@@ -27,7 +28,7 @@ import webapp2 as w
 
 import settings
 from netprint import UnexpectedContent
-from netprintbox.data import DropboxUser
+from netprintbox.data import DropboxUser, DropboxFileInfo
 from netprintbox.exceptions import (
         InvalidNetprintAccountInfo,
         OverLimit, PendingUser,
@@ -183,3 +184,19 @@ class TopHandler(w.RequestHandler):
         response = exc.HTTPOk()
         response.body = template.substitute()
         raise response
+
+
+class PinHandler(w.RequestHandler):
+    def post(self):
+        data = json.loads(self.request.body)
+        file_info = DropboxFileInfo.get(data['file_info_key'])
+        if data['pin'] == 'on':
+            file_info.pin = True
+        elif data['pin'] == 'off':
+            file_info.pin = False
+        else:
+            raise ValueError
+        file_info.put()
+        self.response.headers['Access-Control-Allow-Origin'] = '*'
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.write(json.dumps({'pin': data['pin']}))

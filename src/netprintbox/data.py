@@ -79,8 +79,8 @@ class DropboxFileInfo(db.Model):
     size = db.IntegerProperty(indexed=False)
     state = db.IntegerProperty(required=True)
     netprint_id = db.StringProperty()
-    # netprint_name = db.StringProperty()
     last_modified = db.DateTimeProperty(required=True)
+    pin = db.BooleanProperty()
 
     def __repr__(self):
         return '<%s %r %s>' % (self.__class__.__name__,
