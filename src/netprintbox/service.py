@@ -224,9 +224,11 @@ class NetprintboxService(object):
                 items[netprint_name] = item_dict
                 if netprint_name in controlled_map:
                     file_info = controlled_map[netprint_name]
+                    item_dict['file-key'] = str(file_info.key())
+                    item_dict['pin-state'] = "on" if file_info.pin else "off"
+                    item_dict['make-link'] = True
                 elif netprint_error and netprint_name in possible_error_map:
                     file_info = possible_error_map[netprint_name]
-                    item_dict['error'] = True
                 else:
                     item_dict['last_modified'] = None
                     continue

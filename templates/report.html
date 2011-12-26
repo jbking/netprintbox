@@ -6,10 +6,14 @@
         <link rel="stylesheet" href="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.css" />
         <script type="text/javascript" src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
         <script type="text/javascript" src="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.js"></script>
+        <script type="text/javascript" src="{{uri_for("top", _full=True)}}static/js/report.js"></script>
+        <script>
+            window.pin_api_url = "{{uri_for("pin", _full=True)}}";
+        </script>
         <title>ネットプリントボックス ファイル一覧</title>
     </head>
     <body>
-        <div data-role="page">
+        <div data-role="page" id="top">
             <div data-role="header">
                 <h1>ファイル一覧</h1>
             </div>
@@ -22,8 +26,11 @@
                     <li data-role="list-divider">{{date}}まで</li>
 {{endif}}
 {{for item in items}}
-{{py:error_on_netprint = item.get('error', False)}}
-                    <li><h3>{{item['name']}}</h3>
+{{py:
+error_on_netprint = item.get('error', False)
+make_link = item.get('make-link', False)
+}}
+                    <li>{{if make_link}}<a href="#{{item['id']}}" data-rel="dialog">{{endif}}<h3>{{item['name']}}</h3>
                         <dl>
                             <dt>予約番号</dt>
 {{if error_on_netprint}}
@@ -37,24 +44,34 @@
 {{else}}
                             <dd>{{item['id']}}</dd>
 {{endif}}
-                            <dt>登録日時</dt>
-{{if item.get('controlled', False)}}
-                            <dd>{{item['last_modified']}}</dd>
-{{else}}
-                            <dd>ネットプリントのみに登録されています</dd>
-{{endif}}
-{{if not error_on_netprint}}
-                            <dt>ページ数</dt>
-                            <dd>{{item['page_numbers']}}</dd>
-                            <dt>用紙サイズ</dt>
-                            <dd>{{item['paper_size']}}</dd>
-{{endif}}
-                        </dl>
+                        </dl>{{if make_link}}</a>
+                        <a class="pin_control" data-netprint-key="{{item['file-key']}}" data-netprint-pin="{{item['pin-state']}}" href="#">Pin</a>{{endif}}
                     </li>
 {{endfor}}
 {{endfor}}
                 </ul>
             </div>
         </div>
+{{for item in item_list}}
+{{if item.get('make-link', False)}}
+        <div data-role="page" id="{{item['id']}}" data-add-back-btn="true">
+            <div data-role="header">
+                <h1>{{item['name']}}</h1>
+            </div>
+            <div data-role="content">
+                <dl>
+                    <dt>予約番号</dt>
+                    <dd>{{item['id']}}</dd>
+                    <dt>登録日時</dt>
+                    <dd>{{item['last_modified']}}</dd>
+                    <dt>ページ数</dt>
+                    <dd>{{item['page_numbers']}}</dd>
+                    <dt>用紙サイズ</dt>
+                    <dd>{{item['paper_size']}}</dd>
+                </dl>
+            </div>
+        </div>
+{{endif}}
+{{endfor}}
     </body>
 </html>

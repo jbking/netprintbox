@@ -189,7 +189,7 @@ class TopHandler(w.RequestHandler):
 class PinHandler(w.RequestHandler):
     def post(self):
         data = json.loads(self.request.body)
-        file_info = DropboxFileInfo.get(data['file_info_key'])
+        file_info = DropboxFileInfo.get(data['file_key'])
         if data['pin'] == 'on':
             file_info.pin = True
         elif data['pin'] == 'off':

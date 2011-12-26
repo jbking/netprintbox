@@ -2,23 +2,22 @@ class Pin
     constructor: (@el) ->
 
     toggle: =>
-        console.debug @el.dataset.netprintId, @el.dataset.pin
-        $.post 'http://localhost:8080/pin'
+        $.post window.pin_api_url
             , JSON.stringify(
-                'pin': if @el.dataset.pin == "on"
+                'pin': if @el.dataset.netprintPin == "on"
                             "off"
                        else
                             "on"
-                'file_info_key': 'ahVkZXZ-bmV0cHJpbnRib3gtYWxwaGFyJgsSC0Ryb3Bib3hVc2VyGAEMCxIPRHJvcGJveEZpbGVJbmZvGAgM')
+                'file_key': @el.dataset.netprintKey)
             , (data, status) =>
                 if status == "success"
-                    @el.dataset.pin = JSON.parse(data).pin
+                    @el.dataset.netprintPin = JSON.parse(data).pin
                     @update_face()
 
     update_face: =>
         # Because default icon value is arrow-r, to appear the plus icon, remove the class first.
         # XXX define custom icon, likes pin.
-        if @el.dataset.pin == "on"
+        if @el.dataset.netprintPin == "on"
             $(@el).find('.ui-icon')
                 .removeClass("ui-icon-arrow-r")
                 .addClass("ui-icon-star")

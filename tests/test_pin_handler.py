@@ -34,7 +34,7 @@ class PinHandlerTest(TestCase):
             request = get_blank_request(uri)
             request.method = 'POST'
             request.content_type = 'application/json'
-            request.body = json.dumps({'file_info_key': key,
+            request.body = json.dumps({'file_key': key,
                                        'pin': pin})
             response = request.get_response(app)
             self.assertEqual(response.status_int, 200)
