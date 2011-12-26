@@ -149,8 +149,8 @@ class SyncTransaction(object):
                 file_info.put()
             elif query.count() == 1:
                 file_info = query.get()
-                if file_info.rev != rev:
-                    # Updated file.
+                if file_info.rev != rev or file_info.pin:
+                    # Updated or pinned file.
                     self._capacity_check(size - file_info.size)
                     self.available_space -= size - file_info.size
                     file_info.rev = rev

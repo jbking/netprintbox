@@ -151,6 +151,36 @@ class SyncFeatureTest(TransactionTestBase):
         self.assertEqual(commands[0][0], file_info.path)
 
     @attr('unit', 'light')
+    def test_pinned_file(self):
+        from netprintbox.data import FileState
+
+        commands = []
+
+        class context(object):
+            user = create_user()
+
+            @staticmethod
+            def transfer_from_dropbox(path, limit=None):
+                commands.append((path, limit))
+
+        transaction = self._getOUT(context)
+        file_info = create_file_info(context.user, pin=True)
+
+        transaction._dropbox_only(create_dropbox_item(path=file_info.path,
+                                                      rev=file_info.rev))
+
+        q = context.user.own_files()
+        self.assertEqual(q.count(), 1)
+        latest_file_info = q.get()
+        self.assertEqual(latest_file_info.path, file_info.path)
+        self.assertEqual(latest_file_info.rev, file_info.rev)
+        self.assertIsNone(latest_file_info.netprint_id)
+        self.assertEqual(latest_file_info.state,
+                         FileState.NEED_NETPRINT_ID)
+        self.assertEqual(len(commands), 1)
+        self.assertEqual(commands[0][0], file_info.path)
+
+    @attr('unit', 'light')
     def test_expired_file(self):
         from netprintbox.data import FileState
 

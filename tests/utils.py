@@ -27,6 +27,7 @@ def create_file_info(user, **kwargs):
             'size': 1,
             'state': data.FileState.NEED_NETPRINT_ID,
             'last_modified': datetime.now(),
+            'pin': False,
         }
     params = dict(default)
     params['parent'] = user
