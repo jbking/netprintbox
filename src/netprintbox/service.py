@@ -18,6 +18,7 @@
 """
 
 import os
+import uuid
 import logging
 import hashlib
 from httplib import HTTPException
@@ -224,9 +225,11 @@ class NetprintboxService(object):
                 items[netprint_name] = item_dict
                 if netprint_name in controlled_map:
                     file_info = controlled_map[netprint_name]
+                    item_dict['file-key'] = str(file_info.key())
+                    item_dict['pin-state'] = "on" if file_info.pin else "off"
+                    item_dict['make-link'] = True
                 elif netprint_error and netprint_name in possible_error_map:
                     file_info = possible_error_map[netprint_name]
-                    item_dict['error'] = True
                 else:
                     item_dict['last_modified'] = None
                     continue
@@ -267,12 +270,16 @@ class NetprintboxService(object):
     def make_report(self):
         (need_report, item_list) = self._make_report()
         if need_report:
+            report_ticket = str(uuid.uuid4())
+            self.user.report_ticket = report_ticket
+            self.user.put()
             logging.debug('Making a report for %s(%s)',
                           self.user.email,
                           self.user.uid)
             template = load_template('report.html',
                     namespace=get_template_namespace())
             rendered_data = template.substitute(
+                    report_ticket=report_ticket,
                     item_list=item_list)
             self.dropbox.put(REPORT_PATH, StringIO(rendered_data))
         else:

@@ -58,6 +58,8 @@ class NetprintboxServiceTest(ServiceTestBase):
                               netprint_name=normalize_name(f3_path),
                               state=FileState.LATEST)
 
+        set_request_local()
+
         class netprint(object):
             @staticmethod
             def list():

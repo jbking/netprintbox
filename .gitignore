@@ -1,3 +1,4 @@
 *.pyc
 src/netprintbox/settings_local.py
 .coverage
+static/js/
