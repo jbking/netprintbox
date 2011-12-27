@@ -12,6 +12,7 @@ def create_user(**kwargs):
             'access_key': 'access_key',
             'access_secret': 'access_secret',
             'country': 'JP',
+            'report_ticket': '',
         }
     params = dict(default)
     params.update(kwargs)

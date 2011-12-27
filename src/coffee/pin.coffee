@@ -10,6 +10,7 @@ class Pin
         request_data = JSON.stringify
             pin: pin_state
             file_key: @el.dataset.netprintKey
+            report_ticket: window.report_ticket
 
         callback = (data) =>
             @el.dataset.netprintPin = data.pin

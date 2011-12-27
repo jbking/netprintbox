@@ -18,6 +18,7 @@
 """
 
 import os
+import uuid
 import logging
 import hashlib
 from httplib import HTTPException
@@ -269,12 +270,16 @@ class NetprintboxService(object):
     def make_report(self):
         (need_report, item_list) = self._make_report()
         if need_report:
+            report_ticket = str(uuid.uuid4())
+            self.user.report_ticket = report_ticket
+            self.user.put()
             logging.debug('Making a report for %s(%s)',
                           self.user.email,
                           self.user.uid)
             template = load_template('report.html',
                     namespace=get_template_namespace())
             rendered_data = template.substitute(
+                    report_ticket=report_ticket,
                     item_list=item_list)
             self.dropbox.put(REPORT_PATH, StringIO(rendered_data))
         else:

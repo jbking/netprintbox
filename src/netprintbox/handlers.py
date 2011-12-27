@@ -189,7 +189,15 @@ class TopHandler(w.RequestHandler):
 class PinHandler(w.RequestHandler):
     def post(self):
         data = json.loads(self.request.body)
+        report_ticket = data['report_ticket']
+        q = DropboxUser.all().filter('report_ticket = ', report_ticket)
+        if q.count() == 1:
+            user = q.get()
+        else:
+            self.abort(401)
         file_info = DropboxFileInfo.get(data['file_key'])
+        if file_info.parent().uid != user.uid:
+            self.abort(401)
         if data['pin'] == 'on':
             file_info.pin = True
         elif data['pin'] == 'off':
