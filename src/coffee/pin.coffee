@@ -36,4 +36,5 @@ $('#top').live 'pageinit'
             .each ->
                 pin = new Pin @
                 $(@).click pin.toggle
+                # XXX need live pin state check if online.
                 pin.update_face()
