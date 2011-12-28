@@ -246,7 +246,6 @@ class NetprintboxService(object):
                 netprint_name_error = file_info.as_netprint_name(True)
                 if not (netprint_name in items
                         or netprint_name_error in items):
-                    need_report = True
                     if file_info.state == FileState.LATEST:
                         fake_id = "FAKE:ERROR"
                     else:
