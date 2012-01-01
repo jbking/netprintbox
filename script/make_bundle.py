@@ -54,6 +54,16 @@ def archive(collected_path_list):
 def main():
     collect = []
     for library_name, exclude_pattern in (
+            # netprint
+            ('BeautifulSoup', None),
+            ('httplib2', None),
+
+            # dropbox
+            ('dropbox', None),
+            ('simplejson', '(.*/tests/.*|.*\.so)$'),
+            ('oauth', None),
+
+            # pyramid
             ('pyramid', '.*/(tests|scaffolds|scripts)/.*'),
             ('pkg_resources', None),
             ('webob', None),
@@ -64,6 +74,10 @@ def main():
             ('translationstring', '.*/(tests)/.*'),
             ('zope.interface', '(.*/tests/.*|.*\.c|.*\.so|.*\.txt)$'),
             ('zope.deprecation', '.*(fixture|tests)\.py'),
+
+            # netprintbox
+            ('dateutil', None),
+            ('tempita', None),
             ):
         if exclude_pattern:
             exclude = re.compile(exclude_pattern)
