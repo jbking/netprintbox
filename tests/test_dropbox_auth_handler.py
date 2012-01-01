@@ -1,16 +1,14 @@
 from unittest import TestCase
 from urlparse import urlparse
 
-from webapp2 import uri_for
+from pyramid import testing
 from nose.plugins.attrib import attr
 from minimock import mock, restore
 
-from utils import create_user, get_blank_request
+from utils import create_user
 
 
-class AuthorizeHandlerTest(TestCase):
-    url = "http://fake.host/faked_url"
-
+class TestBase(TestCase):
     def setUp(self):
         from google.appengine.ext.testbed import Testbed
 
@@ -18,37 +16,39 @@ class AuthorizeHandlerTest(TestCase):
         self.testbed.activate()
         self.testbed.init_datastore_v3_stub()
 
+        import netprintbox
+        self.config = testing.setUp()
+        self.config.include('netprintbox')
+
+    def tearDown(self):
+        self.testbed.deactivate()
+        restore()
+        testing.tearDown()
+
+
+class AuthorizeHandlerTest(TestBase):
+    url = "http://fake.host/faked_url"
+
+    def setUp(self):
+        super(AuthorizeHandlerTest, self).setUp()
         # mockout
         import netprintbox.service
         mock('netprintbox.service.DropboxService.build_authorize_url',
              returns=self.url)
 
-    def tearDown(self):
-        self.testbed.deactivate()
-        restore()
-
-    def _getAUT(self):
-        from netprintbox.main import app
-        return app
-
-    @attr('functional', 'light')
+    @attr('integration', 'light')
     def test_it(self):
-        app = self._getAUT()
-        request = get_blank_request()
-        response = app.get_response(uri_for('authorize', _request=request))
+        from netprintbox.views import authorize
+
+        request = testing.DummyRequest()
+        response = authorize(request)
         self.assertEqual(response.status_int, 302)
         self.assertEqual(response.location, self.url)
 
 
-class AuthorizeCallbackHandlerTest(TestCase):
-    oauth_token = 'fake_token'
-
+class AuthorizeCallbackHandlerTest(TestBase):
     def setUp(self):
-        from google.appengine.ext.testbed import Testbed
-
-        self.testbed = Testbed()
-        self.testbed.activate()
-        self.testbed.init_datastore_v3_stub()
+        super(AuthorizeCallbackHandlerTest, self).setUp()
 
         self.user = create_user()
 
@@ -57,27 +57,16 @@ class AuthorizeCallbackHandlerTest(TestCase):
         mock('netprintbox.service.DropboxService.setup_user',
              returns=self.user)
 
-    def tearDown(self):
-        self.testbed.deactivate()
-        restore()
-
-    def _getAUT(self):
-        from netprintbox.main import app
-        return app
-
-    @attr('functional', 'light')
+    @attr('integration', 'light')
     def test_it(self):
-        app = self._getAUT()
+        from netprintbox.views import authorize_callback
 
-        request = get_blank_request()
-        response = app.get_response(uri_for('authorize_callback',
-                                            _request=request,
-                                            oauth_token='hoge'))
+        request = testing.DummyRequest({'oauth_token': 'token'})
+        response = authorize_callback(request)
         self.assertEqual(response.status_int, 302)
         parsed = urlparse(response.location)
         actual_url = '%s?%s' % (parsed.path, parsed.query)
 
-        request = get_blank_request()
-        expected_url = uri_for('setup_guide', _request=request,
-                      key=self.user.access_key)
+        expected_url = request.route_path('setup_guide',
+                _query=(('key', self.user.access_key),))
         self.assertEqual(expected_url, actual_url)

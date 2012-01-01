@@ -10,6 +10,6 @@ if __name__ == '__main__':
     import dev_appserver
     dev_appserver.fix_sys_path()
     project_top = os.path.abspath(os.path.dirname(__file__))
-    for dirname in ('bundle', 'src'):
-        sys.path.insert(0, os.path.join(project_top, dirname))
+    sys.path.insert(0, os.path.join(project_top, 'bundle.zip'))
+    sys.path.insert(0, os.path.join(project_top, 'src'))
     run_exit()

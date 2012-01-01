@@ -2,17 +2,41 @@ import os
 import sys
 
 here = os.path.abspath(os.path.dirname(__file__))
-bundle_dir = os.path.join(here, 'bundle')
+bundle = os.path.join(here, 'bundle.zip')
 src_dir = os.path.join(here, 'src')
 
 
 def fix_sys_path():
     if src_dir not in sys.path:
         sys.path.insert(0, src_dir)
-    if bundle_dir not in sys.path:
-        sys.path.insert(0, bundle_dir)
+    if bundle not in sys.path:
+        sys.path.insert(0, bundle)
 
 fix_sys_path()
 
-from netprintbox import main
-app = main.app
+# flush existing appengine bundled ancestor webob.
+for module_name in sys.modules.keys():
+    if module_name.startswith('webob.'):
+        del sys.modules[module_name]
+del sys.modules['webob']
+
+
+def main():
+    """ This function returns a Pyramid WSGI application.
+    """
+    from pyramid.config import Configurator
+
+    settings = {}
+    if os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'):
+        # Into debug mode when this is running under SDK.
+        settings['debug'] = True
+
+    config = Configurator(settings=settings)
+    if settings['debug']:
+        import httplib2
+        httplib2.debuglevel = 1
+        config.include('pyramid_debugtoolbar')
+    config.include('netprintbox')
+    return config.make_wsgi_app()
+
+app = main()
