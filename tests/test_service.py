@@ -1,30 +1,27 @@
 # -*- encoding: utf-8 -*-
-from unittest import TestCase
 from StringIO import StringIO
 
+from pyramid import testing
 from nose.plugins.attrib import attr
 from minimock import mock, restore
 
 from utils import (
+        TestBase,
         create_user, create_file_info,
         create_netprint_item, create_dropbox_item,
-        get_blank_request, set_request_local,
         app_dir)
 
 
-class ServiceTestBase(TestCase):
+class ServiceTestBase(TestBase):
     maxDiff = None
 
     def setUp(self):
-        from google.appengine.ext.testbed import Testbed
-
-        self.testbed = Testbed()
-        self.testbed.activate()
+        super(ServiceTestBase, self).setUp()
         self.testbed.init_datastore_v3_stub()
         self.testbed.init_memcache_stub()
 
     def tearDown(self):
-        self.testbed.deactivate()
+        super(ServiceTestBase, self).tearDown()
         restore()
 
 
@@ -58,7 +55,8 @@ class NetprintboxServiceTest(ServiceTestBase):
                               netprint_name=normalize_name(f3_path),
                               state=FileState.LATEST)
 
-        set_request_local()
+        request = testing.DummyRequest()
+        self.setUpPyramid(request=request)
 
         class netprint(object):
             @staticmethod
@@ -557,7 +555,6 @@ class DropboxServicePendingNotificationTest(DropboxTestBase):
         self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
 
     def _test_session_error(self, method_name, *args):
-        from webapp2 import uri_for
         from dropbox.rest import ErrorResponse
         from netprintbox.exceptions import BecomePendingUser
         from netprintbox.settings import SYSADMIN_ADDRESS
@@ -576,10 +573,11 @@ class DropboxServicePendingNotificationTest(DropboxTestBase):
         user = create_user()
         service = self._getOUT(user)
         service.client = FakeClient()
+        request = testing.DummyRequest()
+        self.setUpPyramid(request=request)
 
         self.assertFalse(user.is_pending)
         with self.assertRaises(BecomePendingUser):
-            set_request_local()
             getattr(service, method_name)(*args)
         self.assertTrue(user.is_pending)
         sent_messages = self.mail_stub.get_sent_messages(to=user.email)
@@ -587,9 +585,7 @@ class DropboxServicePendingNotificationTest(DropboxTestBase):
         message = sent_messages[0]
         message_body = str(message.body)
 
-        request = get_blank_request()
-        self.assertIn(uri_for('authorize', _request=request),
-                      message_body)
+        self.assertIn(request.route_url('authorize'), message_body)
         self.assertIn(SYSADMIN_ADDRESS, message.sender)
 
     @attr('unit', 'light')
@@ -640,8 +636,10 @@ class DropboxServiceRecognizeErrorResponse(DropboxTestBase):
         user = create_user()
         service = self._getOUT(user)
         service.client = client(status, reason)
+        request = testing.DummyRequest()
+        self.setUpPyramid(request=request)
+
         with self.assertRaises(expected_exception):
-            set_request_local()
             service.list('/')
         sent_messages = self.mail_stub.get_sent_messages(to=user.email)
         self.assertEqual(len(sent_messages), how_many_messages)

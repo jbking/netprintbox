@@ -6,9 +6,9 @@
         <link rel="stylesheet" href="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.css" />
         <script type="text/javascript" src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
         <script type="text/javascript" src="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.js"></script>
-        <script type="text/javascript" src="{{uri_for("top", _full=True)}}static/js/report.js"></script>
+        <script type="text/javascript" src="{{route_url("top")}}static/js/report.js"></script>
         <script>
-            window.pin_api_url = "{{uri_for("pin", _full=True)}}";
+            window.pin_api_url = "{{route_url("pin")}}";
             window.report_token = "{{report_token}}";
         </script>
         <title>ネットプリントボックス ファイル一覧</title>
