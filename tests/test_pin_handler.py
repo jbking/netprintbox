@@ -1,44 +1,32 @@
 import json
-from unittest import TestCase
 
+from pyramid import testing
 from nose.plugins.attrib import attr
 
-from utils import create_user, create_file_info, get_blank_request, uri_for
+from utils import create_user, create_file_info, TestBase
 
 
-class PinHandlerTest(TestCase):
+class PinHandlerTest(TestBase):
     def setUp(self):
-        from google.appengine.ext.testbed import Testbed
-
-        self.testbed = Testbed()
-        self.testbed.activate()
+        super(PinHandlerTest, self).setUp()
         self.testbed.init_datastore_v3_stub()
 
-    def tearDown(self):
-        self.testbed.deactivate()
-
-    def _getAUT(self):
-        from netprintbox.main import app
-        return app
-
-    @attr('functional', 'light')
+    @attr('integration', 'light')
     def test_it(self):
         from netprintbox.data import DropboxFileInfo
+        from netprintbox.views import pin as pin_view
 
         report_token = 'a_token'
         user = create_user(report_token=report_token)
         file_info = create_file_info(user)
-        app = self._getAUT()
-        uri = uri_for('pin')
 
         def post(key, pin, expected):
             data = {'file_key': key, 'pin': pin,
                     'report_token': report_token}
-            request = get_blank_request(uri)
-            request.method = 'POST'
-            request.content_type = 'application/json'
-            request.body = json.dumps(data)
-            response = request.get_response(app)
+            request = testing.DummyRequest(
+                    headers={'Content-Type': 'application/json'},
+                    body=json.dumps(data))
+            response = pin_view(request)
             self.assertEqual(response.status_int, 200)
             self.assertEqual(response.headers['Access-Control-Allow-Origin'],
                              '*')
