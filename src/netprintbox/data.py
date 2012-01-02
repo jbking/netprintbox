@@ -43,7 +43,7 @@ class DropboxUser(db.Model):
     access_secret = db.StringProperty(required=True, indexed=False)
     pending = db.BooleanProperty(default=False)
     country = db.StringProperty(default='JP')
-    report_ticket = db.StringProperty()
+    report_token = db.StringProperty()
 
     def own_files(self):
         return DropboxFileInfo.all().ancestor(self)

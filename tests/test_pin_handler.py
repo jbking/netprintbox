@@ -25,15 +25,15 @@ class PinHandlerTest(TestCase):
     def test_it(self):
         from netprintbox.data import DropboxFileInfo
 
-        report_ticket = 'a_ticket'
-        user = create_user(report_ticket=report_ticket)
+        report_token = 'a_token'
+        user = create_user(report_token=report_token)
         file_info = create_file_info(user)
         app = self._getAUT()
         uri = uri_for('pin')
 
         def post(key, pin, expected):
             data = {'file_key': key, 'pin': pin,
-                    'report_ticket': report_ticket}
+                    'report_token': report_token}
             request = get_blank_request(uri)
             request.method = 'POST'
             request.content_type = 'application/json'

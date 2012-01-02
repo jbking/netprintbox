@@ -269,8 +269,8 @@ class NetprintboxService(object):
     def make_report(self):
         (need_report, item_list) = self._make_report()
         if need_report:
-            report_ticket = str(uuid.uuid4())
-            self.user.report_ticket = report_ticket
+            report_token = str(uuid.uuid4())
+            self.user.report_token = report_token
             self.user.put()
             logging.debug('Making a report for %s(%s)',
                           self.user.email,
@@ -278,7 +278,7 @@ class NetprintboxService(object):
             template = load_template('report.html',
                     namespace=get_template_namespace())
             rendered_data = template.substitute(
-                    report_ticket=report_ticket,
+                    report_token=report_token,
                     item_list=item_list)
             self.dropbox.put(REPORT_PATH, StringIO(rendered_data))
         else:

@@ -189,8 +189,8 @@ class TopHandler(w.RequestHandler):
 class PinHandler(w.RequestHandler):
     def post(self):
         data = json.loads(self.request.body)
-        report_ticket = data['report_ticket']
-        q = DropboxUser.all().filter('report_ticket = ', report_ticket)
+        report_token = data['report_token']
+        q = DropboxUser.all().filter('report_token = ', report_token)
         if q.count() == 1:
             user = q.get()
         else:
