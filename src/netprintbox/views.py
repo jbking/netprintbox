@@ -1,6 +1,9 @@
 import json
+
 from webob import exc
 from pyramid.view import view_config
+
+from netprintbox.utils import load_template
 
 
 @view_config(route_name='authorize', request_method='GET')
@@ -49,4 +52,12 @@ def pin(request):
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Content-Type'] = 'application/json'
     response.body = json.dumps({'pin': data['pin']})
+    return response
+
+
+@view_config(route_name='top', request_method='GET')
+def top(request):
+    template = load_template('top.html', request=request)
+    response = request.response
+    response.body = template.substitute()
     return response

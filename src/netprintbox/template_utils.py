@@ -13,10 +13,11 @@ def categorize_by(key, item_list, reverse=False):
                               reverse=reverse))
 
 
-def get_namespace():
-    current_request = get_current_request()
+def get_namespace(request=None):
+    if request is None:
+        request = get_current_request()
     return {
             'categorize_by': categorize_by,
-            'route_path': current_request.route_path,
-            'route_url': current_request.route_url,
+            'route_path': request.route_path,
+            'route_url': request.route_url,
             }
