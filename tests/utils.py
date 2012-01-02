@@ -1,7 +1,30 @@
+from unittest import TestCase
 from datetime import datetime
+
+from pyramid import testing
 
 from netprint import Item, PaperSize
 from netprintbox import data
+
+
+class TestBase(TestCase):
+    def setUp(self):
+        from google.appengine.ext.testbed import Testbed
+
+        self.testbed = Testbed()
+        self.testbed.activate()
+        # default setup with no param
+        # you may re-setup in a test code by using this.
+        self.setUpPyramid()
+
+    def setUpPyramid(self, **kwargs):
+        import netprintbox
+        self.config = testing.setUp(**kwargs)
+        self.config.include('netprintbox')
+
+    def tearDown(self):
+        self.testbed.deactivate()
+        testing.tearDown()
 
 
 def create_user(**kwargs):
@@ -12,7 +35,7 @@ def create_user(**kwargs):
             'access_key': 'access_key',
             'access_secret': 'access_secret',
             'country': 'JP',
-            'report_ticket': '',
+            'report_token': '',
         }
     params = dict(default)
     params.update(kwargs)
@@ -63,29 +86,6 @@ def create_dropbox_item(**kwargs):
     params = dict(default)
     params.update(kwargs)
     return params
-
-
-def get_blank_request(path='/'):
-    from netprintbox.main import app
-    from webapp2 import Request
-
-    request = Request.blank(path)
-    request.app = app
-    return request
-
-
-def set_request_local(request=None):
-    from webapp2 import _local
-    if request is None:
-        request = get_blank_request()
-    _local.request = request
-
-
-def uri_for(name, *args, **kwargs):
-    """Foolish wrapper of webapp2.uri_for()"""
-    from webapp2 import uri_for
-    request = get_blank_request()
-    return uri_for(name, _request=request, *args, **kwargs)
 
 
 def app_dir():

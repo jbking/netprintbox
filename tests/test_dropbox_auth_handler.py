@@ -1,32 +1,23 @@
-from unittest import TestCase
 from urlparse import urlparse
 
 from pyramid import testing
 from nose.plugins.attrib import attr
 from minimock import mock, restore
 
-from utils import create_user
+from utils import create_user, TestBase
 
 
-class TestBase(TestCase):
+class ATestBase(TestBase):
     def setUp(self):
-        from google.appengine.ext.testbed import Testbed
-
-        self.testbed = Testbed()
-        self.testbed.activate()
+        super(ATestBase, self).setUp()
         self.testbed.init_datastore_v3_stub()
 
-        import netprintbox
-        self.config = testing.setUp()
-        self.config.include('netprintbox')
-
     def tearDown(self):
-        self.testbed.deactivate()
+        super(TestBase, self).tearDown()
         restore()
-        testing.tearDown()
 
 
-class AuthorizeHandlerTest(TestBase):
+class AuthorizeHandlerTest(ATestBase):
     url = "http://fake.host/faked_url"
 
     def setUp(self):
@@ -46,7 +37,7 @@ class AuthorizeHandlerTest(TestBase):
         self.assertEqual(response.location, self.url)
 
 
-class AuthorizeCallbackHandlerTest(TestBase):
+class AuthorizeCallbackHandlerTest(ATestBase):
     def setUp(self):
         super(AuthorizeCallbackHandlerTest, self).setUp()
 
