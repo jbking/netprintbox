@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from pyramid.view import view_config
 from google.appengine.api import taskqueue
 
-from settings import SLEEP_WAIT
+from netprintbox.settings import SLEEP_WAIT
 
 
 @view_config(route_name='sync_all')
