@@ -4,7 +4,9 @@ from webob import exc
 from pyramid.view import view_config
 
 from netprintbox.utils import load_template
-from setup_guide import *  # this module should be a package and include the module.
+# this module should be a package and includes these modules.
+from setup_guide import *
+from taskqueue_handler import *
 
 
 @view_config(route_name='authorize', request_method='GET')
