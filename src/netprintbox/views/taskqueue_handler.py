@@ -18,6 +18,7 @@ def sync_all(request):
             taskqueue.add(url=request.route_path('sync_for_user'),
                           params={'key': user.key()},
                           countdown=random.randint(0, SLEEP_WAIT))
+    return request.response
 
 
 @contextmanager
@@ -47,7 +48,7 @@ def sync_for_user(request):
     from netprintbox.service import NetprintboxService
     from netprintbox.data import DropboxUser
 
-    user_key = request.GET['key']
+    user_key = request.POST['key']
     user = DropboxUser.get(user_key)
     logging.debug("Checking for: %s", user.email)
 
@@ -57,6 +58,7 @@ def sync_for_user(request):
         taskqueue.add(url=request.route_path('make_report_for_user'),
                       params={'key': user_key},
                       countdown=random.randint(0, SLEEP_WAIT))
+    return request.response
 
 
 @view_config(route_name='make_report_for_user')
@@ -64,10 +66,11 @@ def make_report_for_user(request):
     from netprintbox.service import NetprintboxService
     from netprintbox.data import DropboxUser
 
-    user_key = request.GET['key']
+    user_key = request.POST['key']
     user = DropboxUser.get(user_key)
     logging.debug("Making report for: %s", user.email)
 
     with handling_task_exception(user):
         service = NetprintboxService(user)
         service.make_report()
+    return request.response
