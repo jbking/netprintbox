@@ -18,7 +18,8 @@ fix_sys_path()
 for module_name in sys.modules.keys():
     if module_name.startswith('webob.'):
         del sys.modules[module_name]
-del sys.modules['webob']
+if 'webob' in sys.modules:
+    del sys.modules['webob']
 
 
 def main():
@@ -35,7 +36,6 @@ def main():
     if settings['debug']:
         import httplib2
         httplib2.debuglevel = 1
-        config.include('pyramid_debugtoolbar')
     config.include('netprintbox')
     return config.make_wsgi_app()
 

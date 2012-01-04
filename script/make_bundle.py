@@ -76,7 +76,6 @@ def main():
             ('zope.deprecation', '.*(fixture|tests)\.py'),
 
             # netprintbox
-            ('dateutil', None),
             ('tempita', None),
             ):
         if exclude_pattern:
