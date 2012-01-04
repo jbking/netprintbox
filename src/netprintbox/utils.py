@@ -26,8 +26,8 @@ from netprintbox.settings import (
 from netprintbox.template_utils import get_namespace as get_template_namespace
 
 
-def load_template(path, namespace={}):
-    n = get_template_namespace()
+def load_template(path, namespace={}, request=None):
+    n = get_template_namespace(request=request)
     n.update(namespace)
     return tempita.HTMLTemplate(
             open(os.path.join(TEMPLATE_PATH, path)).read(),

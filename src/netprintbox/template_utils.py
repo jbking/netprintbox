@@ -1,6 +1,5 @@
 from collections import OrderedDict
-
-import webapp2
+from pyramid.threadlocal import get_current_request
 
 
 def categorize_by(key, item_list, reverse=False):
@@ -14,8 +13,11 @@ def categorize_by(key, item_list, reverse=False):
                               reverse=reverse))
 
 
-def get_namespace():
+def get_namespace(request=None):
+    if request is None:
+        request = get_current_request()
     return {
             'categorize_by': categorize_by,
-            'uri_for': webapp2.uri_for,
+            'route_path': request.route_path,
+            'route_url': request.route_url,
             }

@@ -23,6 +23,8 @@ skip_files: |
   ^(.*/)?(
   (.git/.*)|
   (app\.yaml)|
+  (Rakefile)|
   (.*\.py[co])|
   (tests/.*)|
+  (script/.*)|
   )$

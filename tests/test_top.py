@@ -1,14 +1,13 @@
-from unittest import TestCase
+from pyramid import testing
 from nose.plugins.attrib import attr
 
+from utils import TestBase
 
-class TopTest(TestCase):
-    def _getAUT(self):
-        from netprintbox.main import app
-        return app
 
-    @attr('functional', 'light')
+class TopTest(TestBase):
+    @attr('integration', 'light')
     def test_guide(self):
-        app = self._getAUT()
-        response = app.get_response('/')
+        from netprintbox.views import top
+        request = testing.DummyRequest()
+        response = top(request)
         self.assertEqual(response.status_int, 200)

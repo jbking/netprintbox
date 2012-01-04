@@ -1,19 +1,27 @@
 import re
-from unittest import TestCase
 from StringIO import StringIO
+
+from pyramid import testing
 from nose.plugins.attrib import attr
 from minimock import mock, restore
+from webob import exc
 
-from utils import create_user
+from utils import create_user, TestBase
 
 
-class SetupGuideTest(TestCase):
+class SetupGuideTestBase(TestBase):
     def setUp(self):
-        from google.appengine.ext.testbed import Testbed
-
-        self.testbed = Testbed()
-        self.testbed.activate()
+        super(SetupGuideTestBase, self).setUp()
         self.testbed.init_datastore_v3_stub()
+
+    def tearDown(self):
+        super(SetupGuideTestBase, self).tearDown()
+        restore()
+
+
+class SetupGuideTest(SetupGuideTestBase):
+    def setUp(self):
+        super(SetupGuideTest, self).setUp()
 
         from netprintbox.exceptions import DropboxNotFound
         # mockout
@@ -64,74 +72,47 @@ class SetupGuideTest(TestCase):
              returns=netprint_service)
         mock('google.appengine.api.taskqueue.add')
 
-    def tearDown(self):
-        self.testbed.deactivate()
-        restore()
-
-    def _getAUT(self):
-        from netprintbox.main import app
-        return app
-
-    @attr('functional', 'light')
+    @attr('integration', 'light')
     def test_it(self):
-        app = self._getAUT()
+        from netprintbox.views import setup_guide
 
-        response = app.get_response('/guide/setup?key=key')
-        self.assertEqual(response.status_int, 401,
-                         "Unknown user can't into setup.")
+        request1 = testing.DummyRequest(params={'key': 'key'})
+        with self.assertRaises(exc.HTTPUnauthorized):
+            setup_guide(request1)
 
         user = create_user()
-        response = app.get_response('/guide/setup?key=%s' % user.access_key)
-        self.assertEqual(response.status_int, 200)
-        self.assertRegexpMatches(response.body, re.compile('Step1'))
+        request2 = testing.DummyRequest(params={'key': user.access_key})
+        response2 = setup_guide(request2)
+        self.assertEqual(response2.status_int, 200)
+        self.assertRegexpMatches(response2.body, re.compile('Step1'))
 
         # fall back to step1 if login failed.
-        response = app.get_response('/guide/setup?key=%s' % user.access_key)
-        self.assertEqual(response.status_int, 200)
-        self.assertRegexpMatches(response.body, re.compile('Step1'))
+        request3 = testing.DummyRequest(params={'key': user.access_key})
+        response3 = setup_guide(request3)
+        self.assertEqual(response3.status_int, 200)
+        self.assertRegexpMatches(response3.body, re.compile('Step1'))
 
         # login succeed.
-        response = app.get_response('/guide/setup?key=%s' % user.access_key)
-        self.assertEqual(response.status_int, 200)
-        self.assertRegexpMatches(response.body, re.compile('Step2'))
+        request4 = testing.DummyRequest(params={'key': user.access_key})
+        response4 = setup_guide(request4)
+        self.assertEqual(response4.status_int, 200)
+        self.assertRegexpMatches(response4.body, re.compile('Step2'))
 
 
-class SetupGuidePendingTest(TestCase):
-    url = "http://fake.host/faked_url"
-
-    def setUp(self):
-        from google.appengine.ext.testbed import Testbed
-
-        self.testbed = Testbed()
-        self.testbed.activate()
-        self.testbed.init_datastore_v3_stub()
-
-        # mockout
-        import netprintbox.service
-        mock('netprintbox.service.DropboxService.build_authorize_url',
-             returns=self.url)
-
-    def tearDown(self):
-        self.testbed.deactivate()
-        restore()
-
-    def _getAUT(self):
-        from netprintbox.main import app
-        return app
-
-    @attr('functional', 'light')
+class SetupGuidePendingTest(SetupGuideTestBase):
+    @attr('integration', 'light')
     def test_it(self):
+        from netprintbox.views import setup_guide
         from netprintbox.exceptions import BecomePendingUser
-
-        app = self._getAUT()
-
-        response = app.get_response('/guide/setup?key=key')
-        self.assertEqual(response.status_int, 401,
-                         "Unknown user can't into setup.")
 
         user = create_user()
         with self.assertRaises(BecomePendingUser):
             user.put_pending(notify=False)
-        response = app.get_response('/guide/setup?key=%s' % user.access_key)
-        self.assertEqual(response.status_int, 302)
-        self.assertEqual(response.location, self.url)
+        request = testing.DummyRequest(params={'key': user.access_key})
+        try:
+            setup_guide(request)
+            self.fail("No redirect response found")
+        except exc.HTTPFound as response:
+            self.assertEqual(response.status_int, 302)
+            self.assertEqual(response.location,
+                             request.route_path('authorize'))

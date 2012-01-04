@@ -1,25 +1,17 @@
-from unittest import TestCase
-
+from pyramid import testing
 from nose.plugins.attrib import attr
 
-from webapp2 import uri_for
-from utils import (
-        create_user, create_file_info,
-        get_blank_request, set_request_local)
+from utils import create_user, create_file_info, TestBase
 
 
-class DropboxUserTest(TestCase):
+class DropboxUserTest(TestBase):
     def setUp(self):
-        from google.appengine.ext.testbed import Testbed, MAIL_SERVICE_NAME
+        from google.appengine.ext.testbed import MAIL_SERVICE_NAME
 
-        self.testbed = Testbed()
-        self.testbed.activate()
+        super(DropboxUserTest, self).setUp()
         self.testbed.init_datastore_v3_stub()
         self.testbed.init_mail_stub()
         self.mail_stub = self.testbed.get_stub(MAIL_SERVICE_NAME)
-
-    def tearDown(self):
-        self.testbed.deactivate()
 
     def _getOUT(self):
         return create_user()
@@ -36,18 +28,19 @@ class DropboxUserTest(TestCase):
     def test_put_pending(self):
         from netprintbox.exceptions import BecomePendingUser
 
+        request = testing.DummyRequest()
+        self.setUpPyramid(request=request)
+
         user = self._getOUT()
         with self.assertRaises(BecomePendingUser):
-            set_request_local()
             user.put_pending()
             self.assertTrue(user.is_pending)
         sent_messages = self.mail_stub.get_sent_messages(to=user.email)
         self.assertEqual(len(sent_messages), 1)
         message = sent_messages[0]
 
-        request = get_blank_request()
-        self.assertIn(uri_for('authorize', _request=request, _full=True),
-                      str(message.body))
+        request = testing.DummyRequest()
+        self.assertIn(request.route_url('authorize'), str(message.body))
 
     @attr('unit', 'light')
     def test_put_pending_without_notification(self):
