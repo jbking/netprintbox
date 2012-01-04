@@ -33,7 +33,7 @@ class SyncAll(HandlerTestBase):
         tasks = self.taskqueue_stub.get_filtered_tasks()
         self.assertEqual(len(tasks), 1)
         task = tasks[0]
-        self.assertEqual(task.url, request.route_path('check_for_user'))
+        self.assertEqual(task.url, request.route_path('sync_for_user'))
         self.assertEqual(parse_qs(task.payload)['key'][0], str(user.key()))
 
 

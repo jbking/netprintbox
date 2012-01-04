@@ -15,7 +15,7 @@ def sync_all(request):
     for user in DropboxUser.all():
         if not user.is_pending:
             # XXX check the need to sync?
-            taskqueue.add(url=request.route_path('check_for_user'),
+            taskqueue.add(url=request.route_path('sync_for_user'),
                           params={'key': user.key()},
                           countdown=random.randint(0, SLEEP_WAIT))
 
@@ -42,7 +42,7 @@ def handling_task_exception(user):
         logging.exception('unexpected exception: %s', user.email)
 
 
-@view_config(route_name='check_for_user')
+@view_config(route_name='sync_for_user')
 def sync_for_user(request):
     from netprintbox.service import NetprintboxService
     from netprintbox.data import DropboxUser

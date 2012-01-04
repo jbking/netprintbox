@@ -68,6 +68,6 @@ def setup_guide(request):
         return step1(request, key, error=True)
     else:
         user = q.get()
-        taskqueue.add(url=request.route_url('check_for_user'),
+        taskqueue.add(url=request.route_url('sync_for_user'),
                       params={'key': user.key()})
         return step2(request)
