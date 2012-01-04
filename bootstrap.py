@@ -31,6 +31,8 @@ def main():
     if os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'):
         # Into debug mode when this is running under SDK.
         settings['debug'] = True
+    else:
+        settings['debug'] = False
 
     config = Configurator(settings=settings)
     if settings['debug']:
