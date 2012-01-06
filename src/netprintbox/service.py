@@ -143,7 +143,6 @@ class NetprintboxService(object):
 
     def sync(self):
         self.ensure_paper_size_directories()
-        self.move_files_on_root_into_A4()
         transaction = SyncTransaction(self)
         transaction.sync()
 
@@ -155,15 +154,6 @@ class NetprintboxService(object):
             if (not attr_name.startswith('_')
                 and '/' + attr_name not in root_dirs_path):
                 self.dropbox.create_folder(attr_name)
-
-    def move_files_on_root_into_A4(self):
-        excludes = [REPORT_PATH, ACCOUNT_INFO_PATH]
-        excludes.extend('/' + name for name in dir(PaperSize)
-                        if not name.startswith('_'))
-        for item in self.dropbox.list('/')['contents']:
-            path = item['path']
-            if path not in excludes:
-                self.dropbox.move(path, '/A4' + path)
 
     def delete_from_netprint(self, netprint_id):
         self.netprint.delete(netprint_id)

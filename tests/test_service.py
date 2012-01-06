@@ -252,40 +252,6 @@ class NetprintboxServiceTest(ServiceTestBase):
         self.assertItemsEqual(result, expected_dir_names)
 
     @attr('unit', 'light')
-    def test_move_files_on_root_into_A4(self):
-        from netprint import PaperSize
-        from netprintbox.settings import ACCOUNT_INFO_PATH, REPORT_PATH
-
-        self.assertIn('A4', dir(PaperSize))
-
-        service = self._getOUT(None)
-
-        result = []
-
-        class dropbox(object):
-            @staticmethod
-            def list(path):
-                self.assertEqual(path, '/')
-                root_dir = app_dir()
-                for generated_path in (ACCOUNT_INFO_PATH, REPORT_PATH):
-                    root_dir['contents'].append(
-                            create_dropbox_item(path=generated_path))
-                for target_path in ('/foo.doc', '/bar.xls'):
-                    root_dir['contents'].append(
-                            create_dropbox_item(path=target_path))
-                return root_dir
-
-            @staticmethod
-            def move(from_path, to_path):
-                result.append((from_path, to_path))
-
-        service.dropbox = dropbox
-        service.move_files_on_root_into_A4()
-        self.assertItemsEqual(result,
-                [('/foo.doc', '/A4/foo.doc'),
-                 ('/bar.xls', '/A4/bar.xls')])
-
-    @attr('unit', 'light')
     def test_specify_paper_size(self):
         service = self._getOUT(None)
 
