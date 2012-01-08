@@ -1,37 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html manifest="/static/cache.manifest">
     <head>
         <meta charset="UTF-8">
-        <link rel="stylesheet" href="/static/css/page.css" type="text/css" />
-        <title>ネットプリントボックス α</title>
+        <link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css">
+        <link rel="stylesheet" href="/static/css/page.css">
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+        <script src="/static/js/page.js"></script>
+        <title>Dropboxでネットプリント</title>
     </head>
     <body>
         <div>
-            <a target="_blank" href="http://github.com/jbking/netprintbox"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://a248.e.akamai.net/assets.github.com/img/30f550e0d38ceb6ef5b81500c64d970b7fb0f028/687474703a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub"></a>
+            <a target="_blank" href="http://github.com/jbking/netprintbox"><img style="position: fixed; z-index: 10001; top: 0; right: 0; border: 0;" src="http://a248.e.akamai.net/assets.github.com/img/30f550e0d38ceb6ef5b81500c64d970b7fb0f028/687474703a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub"></a>
         </div>
-        <h1><a href="{{route_path('top')}}">ネットプリントボックス</a></h1>
-        <h2>このサービスについて</h2>
-        <p>Dropboxでネットプリントへファイルの登録削除ができるサービスのプロトタイプです。</p>
-        <p class="next_link"><a href="{{route_path('authorize')}}">&gt;&gt;使ってみる</a></p>
-        <h3>使い方</h3>
-        <p>セットアップを終えるとDropbox内に「Apps/ネットプリント」フォルダと、それぞれ用紙サイズ毎にサブフォルダが作成されます。</p>
-        <p>ネットプリントが対応している印刷したいファイルをそのサブフォルダどれかに置くと、その用紙サイズでネットプリントに登録され、レポート(report.html)が新しくなります。</p>
-        <p>お手元のスマートフォンなどでレポートをご活用ください。</p>
-        <div class="warning">
-            <h3>注意</h3>
-            <p>現在、ネットプリントでファイルが削除されると、それと同期しているファイルも削除されます。</p>
-            <p>ネットプリント上で手動で削除した、1週間経過で削除された、プログラムのバグかは問いません。</p>
-            <p>Dropboxのサイト上で復元はできますが、削除されると都合のわるいファイルはコピーしてお使いください。<p>
+        <header>
+            <div class="container">
+                <h1>Dropboxでネットプリント</h1>
+            </div>
+        </header>
+        <div class="container">
+            <section id="overview">
+                <div class="row">
+                    <div class="span16">
+                        <p>Dropboxでネットプリントへファイルの登録削除ができるサービスのα版です。</p>
+                    </div>
+                </div>
+            </section>
+            <h2>セットアップ</h2>
+            <section id="setup">
+                <div class="row">
+                    <div class="span16">
+                        <ol>
+                            <li><p>下のボタンを押すとDropboxのページへ飛びます。連携を許可することで、このサービスがあなたのDropboxと動作するようになります。</p></li>
+                            <li><p>連携が始まったら簡単なセットアップを行い完了です。</p></li>
+                            <!--
+                            <li>
+                                <p>セットアップが終わると、それぞれの用紙サイズ(A4, A3, B4, B5, L)にサブフォルダが作成されます。</p>
+                                <p>用紙サイズのサブフォルダのいずれかに印刷したいファイルを置くと、ネットプリントにファイルが登録されます。</p>
+                            </li>
+                            <li><p>ファイルが登録されるとレポートが作成されます。</p></li>
+                            -->
+                        </ol>
+                        <a class="btn info" href="{{route_path('authorize')}}">サービスの利用を開始する</a>
+                    </div>
+                </div>
+            </section>
+            <h2>おもな特徴</h2>
+            <section id="feature">
+                <div class="row">
+                    <div class="span8">
+                        <h3>ファイルの同期<span class="label important">重要</span></h3>
+                        <p>登録したファイルはネットプリント上の登録と同期しています。Dropboxかネットプリントでファイルが削除されると、もう片方の登録も削除されます。</p>
+                    </div>
+                    <div class="span8">
+                        <h3>対応しているファイルフォーマット</h3>
+                        <p>ネットプリントと同じです。</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="span8">
+                        <h3>レポート</h3>
+                        <p>Dropboxのなかにスマートフォン向けのレポートが自動で作成されます。予約番号も載ってます。</p>
+                    </div>
+                    <div class="span8">
+                        <h3>自動で再登録<span class="label">オプション</span></h3>
+                        <p>自動でネットプリントへ再登録するかどうかを、ファイルごとに設定することができます。</p>
+                    </div>
+                </div>
+            </section>
+            <h2>そのほか</h2>
+            <section id="about">
+                <div class="row">
+                    <div class="span8">
+                        <h3>バックエンド</h3>
+                        <p>このサービスのGoogle App Engine上で稼働しています。</p>
+                        <p><img src="http://code.google.com/intl/ja/appengine/images/appengine-silver-120x30.gif" alt="Powered by Google App Engine" /></p>
+                    </div>
+                    <div class="span8">
+                        <h3>コードのライセンス</h3>
+                        <p>このサービスのコードはgithub上で、"GNU Affero General Public License"のもと<a target="_blank" href="http://github.com/jbking/netprintbox">公開</a>しています。</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="span8">
+                        <h3>作者連絡先</h3>
+                        <address>
+                            yusuke[at]jbking.org
+                            <a target="_blank" href="http://twitter.com/jbking">@jbking</a>
+                        </address>
+                    </div>
+                </div>
+            </section>
         </div>
-        <h3>ライセンス</h3>
-        <p>GNU Affero General Public License</p>
         <footer>
-            <h2>連絡先</h2>
-            <address>
-                <a target="_blank" href="http://twitter.com/jbking">@jbking</a>
-                yusuke[at]jbking.org
-            </address>
-            <p><small>Copyright (C) 2011  MURAOKA Yusuke</small></p>
+            <div class="container">
+                <div class="row">
+                    <div class="span4">
+                        <p><small>Copyright (C) 2011-2012  MURAOKA Yusuke</small></p>
+                    </div>
+                </div>
+            </div>
         </footer>
     </body>
 </html>
