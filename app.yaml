@@ -19,6 +19,10 @@ builtins:
 - deferred: on
 - remote_api: on
 
+libraries:
+- name: pycrypto
+  version: "2.3"
+
 skip_files: |
   ^(.*/)?(
   (.git/.*)|

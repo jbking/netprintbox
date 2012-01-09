@@ -51,13 +51,13 @@ class AuthorizeCallbackHandlerTest(ATestBase):
     @attr('integration', 'light')
     def test_it(self):
         from netprintbox.views import authorize_callback
+        from netprintbox.data import DropboxUser
 
         request = testing.DummyRequest({'oauth_token': 'token'})
         response = authorize_callback(request)
         self.assertEqual(response.status_int, 302)
-        parsed = urlparse(response.location)
-        actual_url = '%s?%s' % (parsed.path, parsed.query)
-
-        expected_url = request.route_path('setup_guide',
-                _query=(('key', self.user.access_key),))
+        actual_url = response.location
+        expected_url = request.route_path('setup_guide')
         self.assertEqual(expected_url, actual_url)
+        key = request.session['netprintbox.dropbox_user.key']
+        self.assertIsNotNone(DropboxUser.get(key))

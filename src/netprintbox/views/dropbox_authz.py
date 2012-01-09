@@ -17,6 +17,6 @@ def authorize_callback(request):
 
     request_key = request.GET['oauth_token']
     user = DropboxService.setup_user(request_key)
-    setup_url = request.route_path('setup_guide',
-            _query=(('key', user.access_key),))
+    request.session['netprintbox.dropbox_user.key'] = str(user.key())
+    setup_url = request.route_path('setup_guide')
     return exc.HTTPFound(location=setup_url)

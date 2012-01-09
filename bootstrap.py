@@ -34,11 +34,23 @@ def main():
     else:
         settings['debug'] = False
 
+    # session
+    from netprintbox.settings import (
+            SESSION_ENCRYPT_KEY, SESSION_VALIDATE_KEY)
+    settings['beaker.session.type'] = 'cookie'
+    settings['beaker.session.key'] = 'netprintbox.session'
+    settings['beaker.session.encrypt_key'] = SESSION_ENCRYPT_KEY
+    settings['beaker.session.validate_key'] = SESSION_VALIDATE_KEY
+
     config = Configurator(settings=settings)
     if settings['debug']:
         import httplib2
         httplib2.debuglevel = 1
+
+    # include them
     config.include('netprintbox')
+    config.include('pyramid_beaker')
+
     return config.make_wsgi_app()
 
 app = main()

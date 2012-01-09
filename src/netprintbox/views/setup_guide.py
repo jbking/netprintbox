@@ -13,11 +13,11 @@ def need_reauthorize(request):
     raise exc.HTTPFound(location=url)
 
 
-def step1(request, key, error=False):
+def step1(request, error=False):
     """ no account info """
     template = load_template('step1.html', request=request)
     response = request.response
-    response.body = template.substitute(key=key, error=error)
+    response.body = template.substitute(error=error)
     return response
 
 
@@ -36,12 +36,12 @@ def setup_guide(request):
     from netprintbox.exceptions import (
             DropboxNotFound, InvalidNetprintAccountInfo)
 
-    key = request.GET['key']
-    q = DropboxUser.all().filter('access_key = ', key)
-    if q.count() != 1:
-        raise exc.HTTPUnauthorized
+    key = request.session['netprintbox.dropbox_user.key']
 
-    user = q.get()
+    try:
+        user = DropboxUser.get(key)
+    except:
+        raise exc.HTTPUnauthorized
     service = NetprintboxService(user)
 
     if user.is_pending:
@@ -58,16 +58,15 @@ def setup_guide(request):
         "[netprint]\n"
         "username=\n"
         "password="))
-        return step1(request, key)
+        return step1(request)
 
     try:
         (username, password) = service.load_netprint_account_info()
         netprint_service = NetprintService(username, password)
         netprint_service.client
     except (DropboxNotFound, InvalidNetprintAccountInfo):
-        return step1(request, key, error=True)
+        return step1(request, error=True)
     else:
-        user = q.get()
         taskqueue.add(url=request.route_path('sync_for_user'),
-                      params={'key': user.key()})
+                      params={'key': key})
         return step2(request)
