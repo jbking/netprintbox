@@ -1,49 +1,30 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css">
-        <link rel="stylesheet" href="/static/css/page.css">
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-        <script src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-alerts.js"></script>
-        <title>Step1(of 2): ネットプリントユーザ情報の登録</title>
-    </head>
-    <body>
-        <header>
-            <div class="container">
-                <h1>Dropboxでネットプリント</h1>
-            </div>
-        </header>
-        <div class="container">
-            <section id="step1">
-                <div class="row">
-                    <div class="span16">
-                        <h3>Step1(of 2): ネットプリントユーザ情報の登録</h3>
-                        {{if error}}
-                        <div class="alert-message error fade in" data-alert="alert">
-                            <a class="close" href="#">×</a>
-                            <p>ネットプリントユーザ情報が正しく読み取れませんでした。</p>
-                        </div>
-                        {{else}}
-                        <div class="alert-message info fade in" data-alert="alert">
-                            <a class="close" href="#">×</a>
-                            <p>Dropbox内の「/Apps/ネットプリント」へフォルダを作成し、その中へ設定ファイル(account.ini)を配置しました。</p>
-                        </div>
-                        {{endif}}
-                        <p>設定ファイル(account.ini)にネットプリントのID/パスワードを記入して、下のボタンを押してください。</p>
-                        <a class="btn info" href="{{route_path('setup_guide', _query=(('key', key),))}}">次へ</a>
-                    </div>
+{{inherit "page.html"}}
+{{def extra_head}}
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-alerts.js"></script>
+{{enddef}}
+{{def title}}Step1(of 2): ネットプリントユーザ情報の登録{{enddef}}
+{{def content}}
+<div class="container">
+    <section id="step1">
+        <div class="row">
+            <div class="span16">
+                <h3>{{title}}</h3>
+                {{if error}}
+                <div class="alert-message error fade in" data-alert="alert">
+                    <a class="close" href="#">×</a>
+                    <p>ネットプリントユーザ情報が正しく読み取れませんでした。</p>
                 </div>
-            </seciton>
+                {{else}}
+                <div class="alert-message info fade in" data-alert="alert">
+                    <a class="close" href="#">×</a>
+                    <p>Dropbox内の「/Apps/ネットプリント」へフォルダを作成し、その中へ設定ファイル(account.ini)を配置しました。</p>
+                </div>
+                {{endif}}
+                <p>設定ファイル(account.ini)にネットプリントのID/パスワードを記入して、下のボタンを押してください。</p>
+                <a class="btn info" href="{{route_path('setup_guide', _query=(('key', key),))}}">次へ</a>
+            </div>
         </div>
-        <footer>
-            <div class="container">
-                <div class="row">
-                    <div class="span4">
-                        <p><small>Copyright (C) 2011-2012  MURAOKA Yusuke</small></p>
-                    </div>
-                </div>
-            </div>
-        </footer>
-    </body>
-</html>
+    </seciton>
+</div>
+{{enddef}}

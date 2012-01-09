@@ -1,0 +1,29 @@
+{{def title}}Dropboxでネットプリント{{enddef}}
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css">
+        <link rel="stylesheet" href="/static/css/page.css">
+        {{self.get.extra_head|html}}
+        <title>{{self.title}}</title>
+    </head>
+    <body>
+        <header>
+            <div class="container">
+                <h1>Dropboxでネットプリント</h1>
+            </div>
+        </header>
+        {{self.content|html}}
+        <footer>
+            <div class="container">
+                <div class="row">
+                    <div class="span4">
+                        <p><small>Copyright (C) 2011-2012  MURAOKA Yusuke</small></p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </body>
+</html>
+
