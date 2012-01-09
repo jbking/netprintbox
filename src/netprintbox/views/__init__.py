@@ -40,6 +40,19 @@ def pin(request):
     return response
 
 
+@view_config(route_name='list_file', request_method='GET')
+def list_file(request):
+    from netprintbox.data import DropboxUser
+
+    key = request.session['netprintbox.dropbox_user.key']
+    user = DropboxUser.get(key)
+
+    template = load_template('list_file.html', request=request)
+    response = request.response
+    response.body = template.substitute(files=user.own_files())
+    return response
+
+
 @view_config(route_name='top', request_method='GET')
 def top(request):
     template = load_template('top.html', request=request)

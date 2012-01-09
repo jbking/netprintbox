@@ -1,0 +1,36 @@
+{{inherit "page.html"}}
+{{def title}}登録済みファイル一覧{{enddef}}
+{{def content}}
+<div class="container">
+    <div class="row">
+        <div class="span12">
+{{if files}}
+            <table class="zebra-striped">
+                <thead>
+                    <tr>
+                        <th>ファイル</th>
+                        <th>予約番号</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{for file_info in files}}
+                    <tr>
+                        <td>{{file_info.path}}</td>
+                        <td>{{file_info.netprint_id}}</td>
+                    </tr>
+                    {{endfor}}
+                </tbody>
+            </table>
+{{else}}
+            <p>登録済みファイルはありません。</p>
+            <p>Dropboxにファイルを置いたら下のボタンを押して下さい。</p>
+{{endif}}
+        </div>
+    </div>
+    <div class="row">
+        <div class="span12">
+            <a class="btn info" href="#">同期する</a>
+        </div>
+    </div>
+</div>
+{{enddef}}
