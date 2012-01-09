@@ -1,11 +1,11 @@
 require 'rake/clean'
 
-entries = ['src/coffee/pin.coffee']
-file 'static/js/report.js' => entries do |t|
+entries = ['src/coffee/cache-check.coffee']
+file 'static/js/page.js' => entries do |t|
   sh "cli.js --outfile #{t.name} #{entries.join ' '}"
 end
 
-generated = ['static/js/report.js']
+generated = ['static/js/page.js']
 
 CLEAN.include generated
 
