@@ -1,7 +1,8 @@
+# -*- encoding: utf-8 -*-
 from unittest import TestCase
 from nose.plugins.attrib import attr
 
-from test_utils import create_user, create_file_info
+from utils import create_user, create_file_info, create_dropbox_item
 
 
 class TransactionTestBase(TestCase):
@@ -36,12 +37,14 @@ class SyncFeatureTest(TransactionTestBase):
                 commands.append((path, limit))
 
         transaction = self._getOUT(context)
-        transaction._dropbox_only(dict(path='path', bytes=0, rev='rev'))
+        transaction._dropbox_only(create_dropbox_item(path='path',
+                                                      bytes=3, rev='rev'))
 
         q = context.user.own_files()
         self.assertEqual(q.count(), 1)
         file_info = q.get()
         self.assertEqual(file_info.path, 'path')
+        self.assertEqual(file_info.size, 3)
         self.assertEqual(file_info.rev, 'rev')
         self.assertIsNone(file_info.netprint_id)
         self.assertEqual(file_info.state,
@@ -68,11 +71,11 @@ class SyncFeatureTest(TransactionTestBase):
         transaction1 = self._getOUT(context1)
         transaction2 = self._getOUT(context2)
 
-        transaction1._dropbox_only(dict(path='path', bytes=0, rev='rev'))
+        transaction1._dropbox_only(create_dropbox_item())
         self.assertEqual(context1.user.own_files().count(), 1)
         self.assertEqual(context2.user.own_files().count(), 0)
 
-        transaction2._dropbox_only(dict(path='path', bytes=0, rev='rev'))
+        transaction2._dropbox_only(create_dropbox_item())
         self.assertEqual(context1.user.own_files().count(), 1)
         self.assertEqual(context2.user.own_files().count(), 1)
 
@@ -95,11 +98,13 @@ class SyncFeatureTest(TransactionTestBase):
 
         transaction = self._getOUT(context)
 
-        file_info = create_file_info(context.user, rev='prev')
+        file_info = create_file_info(context.user, rev='prev',
+                                     netprint_id='aaa')
 
-        transaction._both(dict(path=file_info.path, bytes=4, rev='rev'),
+        transaction._both(create_dropbox_item(path=file_info.path,
+                                              bytes=4, rev='rev'),
                           dict(id=file_info.netprint_id,
-                               name=file_info.netprint_name))
+                               name=file_info.as_netprint_name()))
 
         q = context.user.own_files()
         self.assertEqual(q.count(), 1)
@@ -130,8 +135,8 @@ class SyncFeatureTest(TransactionTestBase):
         transaction = self._getOUT(context)
         file_info = create_file_info(context.user, rev='prev')
 
-        transaction._dropbox_only(dict(path=file_info.path,
-                                       bytes=4, rev='rev'))
+        transaction._dropbox_only(create_dropbox_item(path=file_info.path,
+                                                      bytes=4, rev='rev'))
 
         q = context.user.own_files()
         self.assertEqual(q.count(), 1)
@@ -146,7 +151,39 @@ class SyncFeatureTest(TransactionTestBase):
         self.assertEqual(commands[0][0], file_info.path)
 
     @attr('unit', 'light')
+    def test_pinned_file(self):
+        from netprintbox.data import FileState
+
+        commands = []
+
+        class context(object):
+            user = create_user()
+
+            @staticmethod
+            def transfer_from_dropbox(path, limit=None):
+                commands.append((path, limit))
+
+        transaction = self._getOUT(context)
+        file_info = create_file_info(context.user, pin=True)
+
+        transaction._dropbox_only(create_dropbox_item(path=file_info.path,
+                                                      rev=file_info.rev))
+
+        q = context.user.own_files()
+        self.assertEqual(q.count(), 1)
+        latest_file_info = q.get()
+        self.assertEqual(latest_file_info.path, file_info.path)
+        self.assertEqual(latest_file_info.rev, file_info.rev)
+        self.assertIsNone(latest_file_info.netprint_id)
+        self.assertEqual(latest_file_info.state,
+                         FileState.NEED_NETPRINT_ID)
+        self.assertEqual(len(commands), 1)
+        self.assertEqual(commands[0][0], file_info.path)
+
+    @attr('unit', 'light')
     def test_expired_file(self):
+        from netprintbox.data import FileState
+
         deleted = []
 
         class context(object):
@@ -158,30 +195,66 @@ class SyncFeatureTest(TransactionTestBase):
 
         transaction = self._getOUT(context)
 
-        file_info = create_file_info(context.user, netprint_id='netprint_id')
+        file_info = create_file_info(context.user,
+                                     state=FileState.LATEST,
+                                     netprint_id='netprint_id')
 
         # when a file was removed on netprint,
         # remove data and the file on dropbox if exists.
-        transaction._dropbox_only(dict(path=file_info.path,
-                                       bytes=3, rev='rev'))
+        transaction._dropbox_only(create_dropbox_item(path=file_info.path))
 
         q = context.user.own_files()
         self.assertEqual(q.count(), 0)
         self.assertListEqual(deleted, [file_info.path])
 
     @attr('unit', 'light')
+    def test_deleted_file(self):
+        item_list = []
+
+        class context(object):
+            user = create_user()
+
+            class netprint(object):
+                @staticmethod
+                def list():
+                    return []
+
+            class dropbox(object):
+                @staticmethod
+                def list(path):
+                    return {'is_dir': True,
+                            'path': '/',
+                            'contents': [
+                                {'is_dir': True,
+                                 'path': '/A4',
+                                 'contents': item_list,
+                                 },
+                                ]}
+
+        transaction = self._getOUT(context)
+
+        file_info = create_file_info(context.user,
+                                     path='/A4/foo.doc',
+                                     netprint_id='netprint_id')
+        item_list.append(create_dropbox_item(path=file_info.path,
+                                             is_deleted=True))
+
+        transaction.sync()
+
+        q = context.user.own_files()
+        self.assertEqual(q.count(), 0)
+
+    @attr('unit', 'light')
     def test_do_not_sync_generated_file(self):
-        import settings
+        from netprintbox.settings import ACCOUNT_INFO_PATH, REPORT_PATH
 
         class context(object):
             user = create_user()
 
         transaction = self._getOUT(context)
 
-        for ignore_path in (settings.ACCOUNT_INFO_PATH,
-                            settings.REPORT_PATH):
-            transaction._dropbox_only(dict(path=ignore_path,
-                                           bytes=0, rev='rev'))
+        for ignore_path in (ACCOUNT_INFO_PATH, REPORT_PATH):
+            transaction._dropbox_only(create_dropbox_item(path=ignore_path))
         q = context.user.own_files()
         self.assertEqual(q.count(), 0)
 
@@ -195,7 +268,7 @@ class SyncFeatureTest(TransactionTestBase):
         # don't affect anything when only netprint has a file.
         # its out of scope.
         transaction._netprint_only(dict(id='original_id',
-                                        name='original_name'))
+                                        name=u'オリジナル名'))
 
         q = context.user.own_files()
         self.assertEqual(q.count(), 0)
@@ -217,10 +290,59 @@ class SyncFeatureTest(TransactionTestBase):
         # transaction check for netprint reason.
         self.assertRaises(TransferError,
                           transaction._dropbox_only,
-                          dict(path='path', bytes=0, rev='rev'))
+                          create_dropbox_item())
 
         q = context.user.own_files()
         self.assertEqual(q.count(), 0)
+
+    @attr('unit', 'light')
+    def test_file_data_only_neither_netprint_or_dropbox(self):
+        class context(object):
+            user = create_user()
+
+            class dropbox(object):
+                @staticmethod
+                def list(path):
+                    return {'is_dir': True,
+                            'contents': []}
+
+            class netprint(object):
+                @staticmethod
+                def list():
+                    return {}
+
+        create_file_info(context.user)
+
+        transaction = self._getOUT(context)
+        transaction.sync()
+
+        self.assertEqual(list(context.user.own_files()), [])
+
+    @attr('unit', 'light')
+    def test_handle_unsupport_exception_on_each_item(self):
+        """
+        An unsupported file is put on netprintbox directory,
+        it appears on dropbox's metadata.
+        On such situation, the file is never transferred from dropbox.
+        And the transaction is never failed by that.
+        """
+        from netprintbox.exceptions import UnsupportedFile
+
+        result = []
+
+        class context(object):
+            user = create_user()
+
+            @staticmethod
+            def transfer_from_dropbox(path, limit=None):
+                result.append(path)
+                raise UnsupportedFile(path)
+
+        transaction = self._getOUT(context)
+        transaction._dropbox_only(create_dropbox_item(path='path'))
+
+        self.assertEqual(result, ['path'])
+        self.assertEqual(list(context.user.own_files()), [])
 
 
 class ObtainingLimitTest(TransactionTestBase):
@@ -236,5 +358,4 @@ class ObtainingLimitTest(TransactionTestBase):
         transaction = self._getOUT(context)
 
         self.assertRaises(OverLimit, transaction._dropbox_only,
-                          dict(path='/over_limit.dat',
-                               bytes=1, rev='rev'))
+                          create_dropbox_item(bytes=1))

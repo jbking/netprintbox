@@ -1,12 +1,20 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <link rel="stylesheet" href="/static/css/page.css" type="text/css" />
-        <title>step2:セットアップ完了</title>
-    </head>
-    <body>
-        <h1>step2:セットアップ完了</h1>
-        <p>セットアップは完了しました。</p>
-        <p>そのうちレポートが作成されますので、しばしお待ちください。</p>
-    </body>
-</html>
+{{inherit "page.html"}}
+{{def title}}Step2(of 2): セットアップ完了{{enddef}}
+{{def content}}
+<div class="container">
+    <section id="step1">
+        <div class="row">
+            <div class="span16">
+                <h3>Step2(of 2): セットアップ完了</h3>
+                <p>セットアップは完了しました。</p>
+                <p>このページを閉じても大丈夫です。</p>
+                <!--
+<h3>ファイルを登録してみよう</h3>
+<p>用紙サイズのフォルダにファイルを置くと自動でネットプリントへ登録するようになりました。</p>
+<p>また、今の使われ方をあらわす最新のレポートも作成されるようになりました。時間がかかることがあるので、しばらくお待ちください。</p>
+-->
+            </div>
+        </div>
+    </section>
+</div>
+{{enddef}}

@@ -16,21 +16,37 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-
 import os
+import re
 
 import tempita
-import settings
+
+from netprintbox.settings import (
+        TEMPLATE_PATH, ACCOUNT_INFO_PATH, REPORT_PATH)
+from netprintbox.template_utils import get_namespace as get_template_namespace
 
 
-def load_template(path):
-    return tempita.HTMLTemplate(
-            open(os.path.join(settings.TEMPLATE_PATH, path)).read())
+def load_template(path, namespace={}, request=None):
+    n = get_template_namespace(request=request)
+    n.update(namespace)
+    return tempita.HTMLTemplate.from_filename(
+            os.path.join(TEMPLATE_PATH, path),
+            namespace=n)
 
 
-def normalize_name(path):
-    return os.path.basename(path).split(os.path.extsep)[0]
+def normalize_name(path, ext=False):
+    if path[0] == '/':
+        path = path[1:]
+    path = path.replace('_', '__')
+    path = re.sub(u'[/(「＜＞＆”’」)]', '_', path)
+    if not ext:
+        path = os.path.splitext(path)[0]
+    return path
 
 
 def is_generated_file(path):
-    return path in (settings.ACCOUNT_INFO_PATH, settings.REPORT_PATH)
+    return path in (ACCOUNT_INFO_PATH, REPORT_PATH)
+
+
+def get_namespace():
+    return os.environ.get('CURRENT_VERSION_ID')

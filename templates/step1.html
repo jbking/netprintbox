@@ -1,17 +1,30 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <link rel="stylesheet" href="/static/css/page.css" type="text/css" />
-        <title>step1:ネットプリントユーザ情報の登録</title>
-    </head>
-    <body>
-        <h1>step1:ネットプリントユーザ情報の登録</h1>
-        {{if error}}
-        <p class="error">ネットプリントユーザ情報が読み取れませんでした。</p>
-        {{else}}
-        <p>アプリケーションのディレクトリにテキストファイルを配置しました。</p>
-        {{endif}}
-        <p>ネットプリントのユーザ情報を入力してリンクをクリック。</p>
-        <p><a href="/guide/setup?key={{key}}">&gt;&gt;次へ</a></p>
-    </body>
-</html>
+{{inherit "page.html"}}
+{{def extra_head}}
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-alerts.js"></script>
+{{enddef}}
+{{def title}}Step1(of 2): ネットプリントユーザ情報の登録{{enddef}}
+{{def content}}
+<div class="container">
+    <section id="step1">
+        <div class="row">
+            <div class="span16">
+                <h3>{{title}}</h3>
+                {{if error}}
+                <div class="alert-message error fade in" data-alert="alert">
+                    <a class="close" href="#">×</a>
+                    <p>ネットプリントユーザ情報が正しく読み取れませんでした。</p>
+                </div>
+                {{else}}
+                <div class="alert-message info fade in" data-alert="alert">
+                    <a class="close" href="#">×</a>
+                    <p>Dropbox内の「/Apps/ネットプリント」へフォルダを作成し、その中へ設定ファイル(account.ini)を配置しました。</p>
+                </div>
+                {{endif}}
+                <p>設定ファイル(account.ini)にネットプリントのID/パスワードを記入して、下のボタンを押してください。</p>
+                <a class="btn info" href="{{route_path('setup_guide', _query=(('key', key),))}}">次へ</a>
+            </div>
+        </div>
+    </seciton>
+</div>
+{{enddef}}

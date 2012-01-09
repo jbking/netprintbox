@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 """
     Netprintbox
     Copyright (C) 2011  MURAOKA Yusuke <yusuke@jbking.org>
@@ -22,4 +23,59 @@ class OverLimit(ValueError):
 
 
 class TransactionError(Exception):
+    pass
+
+
+class DropboxError(Exception):
+    pass
+
+
+class DropboxBadRequest(DropboxError):
+    """Bad input parameter. Error message should indicate which one and why."""
+
+
+class DropboxUnauthorized(DropboxError):
+    """Bad or expired token. This can happen if the user or Dropbox revoked or
+       expired an access token. To fix, you should re-authenticate the user."""
+
+
+class DropboxForbidden(DropboxError):
+    """Bad OAuth request (wrong consumer key, bad nonce, expired timestamp...).
+       Unfortunately, re-authenticating the user won't help here."""
+
+
+class DropboxNotFound(DropboxError):
+    """File or folder not found at the specified path."""
+
+
+class DropboxMethodNotAllowed(DropboxError):
+    """Request method not expected (generally should be GET or POST)."""
+
+
+class DropboxServiceUnavailable(DropboxError):
+    """Your app is making too many requests and is being rate limited.
+       503s can trigger on a per-app or per-user basis."""
+
+
+class DropboxInsufficientStorage(DropboxError):
+    """User is over Dropbox storage quota."""
+
+
+class DropboxServerError(DropboxError):
+    """Server error. Check DropboxOps(http://status.dropbox.com/)"""
+
+
+class PendingUser(Exception):
+    pass
+
+
+class BecomePendingUser(PendingUser):
+    pass
+
+
+class InvalidNetprintAccountInfo(ValueError):
+    pass
+
+
+class UnsupportedFile(ValueError):
     pass

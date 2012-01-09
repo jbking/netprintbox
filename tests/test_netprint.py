@@ -1,5 +1,6 @@
 # -*- encoding: utf8 -*-
 import os
+from StringIO import StringIO
 
 from unittest import TestCase
 from nose import SkipTest
@@ -26,12 +27,8 @@ class ClientTest(TestCase):
         class browser(object):
             @staticmethod
             def request(url, method='GET', headers=None, body=None):
-                if url == Client.login_url and method == 'GET':
-                    return Ok, \
-                           load_fixture('data/login.html').read()
-                elif url == Client.manage_url and method == 'POST':
-                    return Ok, \
-                           load_fixture('data/main.html').read()
+                if url == Client.url and method == 'POST':
+                    return Ok, load_fixture('data/main.html').read()
 
         client = self._getOUT(browser)
         client.login('username', 'password')
@@ -80,6 +77,26 @@ class ClientTest(TestCase):
         self.assertEqual(item.paper_size, 'A4')
         self.assertEqual(item.page_numbers, 3)
         self.assertEqual(item.valid_date, '2010/10/02')
+        self.assertFalse(item.error)
+
+    @attr('unit', 'light')
+    def test_list_error(self):
+        from BeautifulSoup import BeautifulSoup
+
+        client = self._getOUT()
+        client._soup = BeautifulSoup(load_fixture('data/main_error.html'))
+        client._check_displaying_main_page_then_trim()
+        item_list = client.list()
+        self.assertEqual(len(item_list), 1)
+
+        item = item_list[0]
+        self.assertEqual(item.id, 'QNA7HNEE')
+        self.assertEqual(item.name, unicode('チケット印刷画面', 'utf8'))
+        self.assertEqual(item.file_size, '832KB')
+        self.assertEqual(item.paper_size, '')
+        self.assertEqual(item.page_numbers, 0)
+        self.assertEqual(item.valid_date, '2010/10/02')
+        self.assertTrue(item.error)
 
     @attr('unit', 'light')
     def test_convert_to_encoding(self):
@@ -87,6 +104,39 @@ class ClientTest(TestCase):
         client._encoding = 'euc-jp'
         self.assertEqual(client.ensure_encoding('テスト'),
                          u'テスト'.encode('euc-jp'))
+
+    def _test_switch_sending_url(self, file_name):
+        client = self._getOUT()
+        result = []
+
+        def fake(sending_url, **kwargs):
+            result.append(sending_url)
+
+        client._request = fake
+        client._encoding = 'euc-jp'
+        client.session_key = 'fake_session'
+        f = StringIO('fake data')
+        f.name = file_name
+        client.send(f)
+        return result
+
+    @attr('unit', 'light')
+    def test_switch_sending_url(self):
+        from netprint import SendingTarget
+        self.assertEqual([SendingTarget.NORMAL],
+                         self._test_switch_sending_url('an.jpg'))
+
+    @attr('unit', 'light')
+    def test_switch_sending_url_office(self):
+        from netprint import SendingTarget
+        self.assertEqual([SendingTarget.OFFICE],
+                         self._test_switch_sending_url('a.docx'))
+
+    @attr('unit', 'light')
+    def test_switch_sending_url_unkown_extension(self):
+        from netprint import UnknownExtension
+        with self.assertRaises(UnknownExtension):
+            self._test_switch_sending_url('a.gif')
 
 
 class FunctionalClientTest(TestCase):

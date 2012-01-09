@@ -1,30 +1,72 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1"> 
+        <link rel="stylesheet" href="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.css" />
+        <script type="text/javascript" src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
+        <script type="text/javascript" src="http://code.jquery.com/mobile/1.0/jquery.mobile-1.0.min.js"></script>
         <title>ネットプリントボックス ファイル一覧</title>
-        <style>
-            <!--
-            li p span {
-                padding-left: 1em;
-            }
-            -->
-        </style>
     </head>
     <body>
-        <ol>
-        {{for loop, item in looper(item_list)}}
-            <li>
-                <p>
-                    <span>{{item['name']}}</span>
-                    <span>{{item['id']}}</span>
-                    {{if item['controlled']}}
-                    <span>{{item['last_modified']}}</span>
-                    {{else}}
-                    <span>ネットプリントのみに登録されています</span>
-                    {{endif}}
-                </p>
-            </li>
-        {{endfor}}
-        </ol>
+        <div data-role="page" id="top">
+            <div data-role="header">
+                <h1>ファイル一覧</h1>
+            </div>
+            <div data-role="content">
+                <ul data-role="listview" data-inset="false">
+{{for date, items in categorize_by('valid_date', item_list, reverse=True).items()}}
+{{if date is None}}
+                    <li data-role="list-divider">未設定</li>
+{{else}}
+                    <li data-role="list-divider">{{date}}まで</li>
+{{endif}}
+{{for item in items}}
+{{py:
+error_on_netprint = item.get('error', False)
+make_link = item.get('make-link', False)
+}}
+                    <li>{{if make_link}}<a href="#{{item['id']}}" data-rel="dialog">{{endif}}<h3>{{item['name']}}</h3>
+                        <dl>
+                            <dt>予約番号</dt>
+{{if error_on_netprint}}
+                            <dd>ネットプリント上でエラー</dd>
+{{elif item['id'].startswith('FAKE')}}
+    {{if item['id'] == 'FAKE:ERROR'}}
+                            <dd>エラー</dd>
+    {{elif item['id'] == 'FAKE:WAIT'}}
+                            <dd>予約番号取得中</dd>
+    {{endif}}
+{{else}}
+                            <dd>{{item['id']}}</dd>
+{{endif}}
+                        </dl>{{if make_link}}</a>{{endif}}
+                    </li>
+{{endfor}}
+{{endfor}}
+                </ul>
+            </div>
+        </div>
+{{for item in item_list}}
+{{if item.get('make-link', False)}}
+        <div data-role="page" id="{{item['id']}}" data-add-back-btn="true">
+            <div data-role="header">
+                <h1>{{item['name']}}</h1>
+            </div>
+            <div data-role="content">
+                <dl>
+                    <dt>予約番号</dt>
+                    <dd>{{item['id']}}</dd>
+                    <dt>登録日時</dt>
+                    <dd>{{item['last_modified']}}</dd>
+                    <dt>ページ数</dt>
+                    <dd>{{item['page_numbers']}}</dd>
+                    <dt>用紙サイズ</dt>
+                    <dd>{{item['paper_size']}}</dd>
+                </dl>
+            </div>
+        </div>
+{{endif}}
+{{endfor}}
     </body>
 </html>
