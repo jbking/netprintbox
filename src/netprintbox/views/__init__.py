@@ -47,9 +47,16 @@ def list_file(request):
     key = request.session['netprintbox.dropbox_user.key']
     user = DropboxUser.get(key)
 
+    data = [{
+        'key': str(file_info.key()),
+        'path': file_info.path,
+        'netprint_id': file_info.netprint_id,
+        'netprint_name': file_info.as_netprint_name(),
+        }
+        for file_info in user.own_files()]
     template = load_template('list_file.html', request=request)
     response = request.response
-    response.body = template.substitute(files=user.own_files())
+    response.body = template.substitute(json_data=json.dumps(data))
     return response
 
 

@@ -3,13 +3,17 @@
 {{def extra_head}}
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 <script src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-modal.js"></script>
+<script src="http://documentcloud.github.com/underscore/underscore-min.js"></script>
 <script src="/static/js/list_file.js"></script>
+<script>
+    var csrf_token = "";
+    var data = JSON.parse('{{json_data|html}}');
+</script>
 {{enddef}}
 {{def content}}
 <div class="container">
     <div class="row">
-        <div class="span12">
-{{if files}}
+        <div id="list-file" class="span12">
             <table class="zebra-striped">
                 <thead>
                     <tr>
@@ -19,23 +23,16 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {{for file_info in files}}
                     <tr>
-                        <td>{{file_info.path}}</td>
-                        <td>{{file_info.netprint_id}}</td>
+                        <td>file_info.path</td>
+                        <td>file_info.netprint_id</td>
                         <td><a class="btn launch-modal" data-netprint-file-id="foo">詳細</a></td>
                     </tr>
-                    {{endfor}}
                 </tbody>
             </table>
-{{else}}
-            <p>登録済みファイルはありません。</p>
-            <p>Dropboxにファイルを置いたら下のボタンを押して下さい。</p>
-{{endif}}
         </div>
-    </div>
-    <div class="row">
-        <div class="span12">
+        <div class="span4">
+            <p>もしDropboxにファイルを置いたのに、一覧にないときは、このボタンを押して下さい。</p>
             <a class="btn info" href="#">Dropboxと同期する</a>
         </div>
     </div>
