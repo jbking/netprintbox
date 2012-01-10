@@ -5,7 +5,12 @@ file 'static/js/page.js' => entries do |t|
   sh "cli.js --outfile #{t.name} #{entries.join ' '}"
 end
 
-generated = ['static/js/page.js']
+entries = ['src/coffee/list_file.coffee']
+file 'static/js/list_file.js' => entries do |t|
+  sh "cli.js --outfile #{t.name} #{entries.join ' '}"
+end
+
+generated = ['static/js/page.js', 'static/js/list_file.js']
 
 CLEAN.include generated
 

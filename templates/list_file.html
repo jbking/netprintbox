@@ -1,5 +1,10 @@
 {{inherit "page.html"}}
 {{def title}}登録済みファイル一覧{{enddef}}
+{{def extra_head}}
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-modal.js"></script>
+<script src="/static/js/list_file.js"></script>
+{{enddef}}
 {{def content}}
 <div class="container">
     <div class="row">
@@ -10,6 +15,7 @@
                     <tr>
                         <th>ファイル</th>
                         <th>予約番号</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -17,6 +23,7 @@
                     <tr>
                         <td>{{file_info.path}}</td>
                         <td>{{file_info.netprint_id}}</td>
+                        <td><a class="launch-modal" data-netprint-file-id="foo">設定</a></td>
                     </tr>
                     {{endfor}}
                 </tbody>
@@ -29,8 +36,20 @@
     </div>
     <div class="row">
         <div class="span12">
-            <a class="btn info" href="#">同期する</a>
+            <a class="btn info" href="#">Dropboxと同期する</a>
         </div>
+    </div>
+</div>
+<div id="modal-form" class="modal hide fade in">
+    <div class="modal-header">
+        <a class="close" href="#">x</a>
+        <h3>Modal Heading</h3>
+    </div>
+    <div class="modal-body">
+        <p>:-)</p>
+    </div>
+    <div class="modal-footer">
+        <button class="btn">設定する</button>
     </div>
 </div>
 {{enddef}}
