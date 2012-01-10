@@ -23,7 +23,7 @@
                     <tr>
                         <td>{{file_info.path}}</td>
                         <td>{{file_info.netprint_id}}</td>
-                        <td><a class="launch-modal" data-netprint-file-id="foo">設定</a></td>
+                        <td><a class="btn launch-modal" data-netprint-file-id="foo">詳細</a></td>
                     </tr>
                     {{endfor}}
                 </tbody>
@@ -43,10 +43,22 @@
 <div id="modal-form" class="modal hide fade in">
     <div class="modal-header">
         <a class="close" href="#">x</a>
-        <h3>Modal Heading</h3>
+        <h3><span class="file-name"></span>の設定</h3>
     </div>
     <div class="modal-body">
-        <p>:-)</p>
+        <dl>
+            <dt>ファイル</dt>
+            <dd class="file-name"></dd>
+            <dt>予約番号<dt>
+            <dd class="file-netprint_id"></dd>
+        </dl>
+        <form class="form-stacked">
+            <ul class="inputs-list">
+                <li><label><input type="radio" value="off" name="auto_reentry"/><p>自動で再登録しない</p></label></li>
+                <li><label><input type="radio" value="on" name="auto_reentry"/><p>自動で再登録する</p></label></li>
+            </ul>
+        </label>
+        </form>
     </div>
     <div class="modal-footer">
         <button class="btn">設定する</button>

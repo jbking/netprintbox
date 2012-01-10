@@ -5,6 +5,7 @@ class ModalLauncher
         $('#modal-form').modal
             backdrop: true
             keyboard: true
+            show: true
 
 $ ->
     $('.launch-modal')
