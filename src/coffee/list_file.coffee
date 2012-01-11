@@ -3,17 +3,10 @@ class ModalLauncher
 
     launch: =>
         file_info = get_stored_data @el
-        pin = if file_info.pin
-                'on'
-            else
-                'off'
+        pin = str_pin file_info.pin
         form = $('#modal-form')
-        form.find('.file-name')
-            .empty()
-            .append(file_info.path)
-        form.find('.file-netprint_id')
-            .empty()
-            .append(file_info.netprint_id)
+        form.find('.file-name').text file_info.path
+        form.find('.file-netprint_id').text file_info.netprint_id
         form.find("[type=radio][value=#{pin}]")
             .attr('checked', 'checked')
         form.find('.apply')
@@ -54,7 +47,7 @@ update_file_list = ->
         $('<p>登録済みファイルはありません。</p>')
             .appendTo(target)
     else
-        thead = $('<thead><tr><th>ファイル</th><th>予約番号</th><th>自動登録</th></tr></thead>')
+        thead = $('<thead><tr><th>ファイル</th><th>ファイル名(ネットプリント)</th><th>予約番号</th><th>自動登録</th></tr></thead>')
         tbody = $('<tbody></tbody>')
         $('<table class="zebra-striped"></table>')
             .append(thead)
@@ -64,15 +57,20 @@ update_file_list = ->
             update_file_record tbody, file_info
 
 
+str_pin = (pin) ->
+    if pin
+        'on'
+    else
+        'off'
+
+
 update_file_record = (tbody, file_info) ->
-    pin = if file_info.pin
-            'on'
-        else
-            'off'
+    pin = str_pin file_info.pin
     result = tbody.find("tr[data-file-key=#{file_info.key}]")
     if _.size(result) == 0
         tr = $('<tr data-file-key="" data-file-info=""></tr>')
             .append("<td>#{file_info.path}</td>")
+            .append("<td>#{file_info.netprint_name}</td>")
             .append("<td>#{file_info.netprint_id}</td>")
             .append("<td>#{pin}</td>")
             .append('<td><a class="btn launch-modal">詳細</a></td>')
@@ -81,8 +79,9 @@ update_file_record = (tbody, file_info) ->
         tr.dataset.fileKey = file_info.key
     else
         result.find('td:eq(0)').text file_info.path
-        result.find('td:eq(1)').text file_info.netprint_id
-        result.find('td:eq(2)').text pin
+        result.find('td:eq(1)').text file_info.netprint_name
+        result.find('td:eq(2)').text file_info.netprint_id
+        result.find('td:eq(3)').text pin
         tr = result.get(0)
     tr.dataset.fileInfo = JSON.stringify file_info
 
@@ -92,7 +91,6 @@ $ ->
     $('.launch-modal')
         .each ->
             modal_launcher = new ModalLauncher @, (val) ->
-                console.debug "pin is #{val.pin}"
                 request = JSON.stringify
                     pin: val.pin
                     file_key: val.key

@@ -44,6 +44,7 @@ def pin(request):
         }
 
     response = request.response
+    response.headers['Content-Type'] = 'application/json'
     response.body = json.dumps(data)
     return response
 
