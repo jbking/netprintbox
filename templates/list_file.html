@@ -2,11 +2,12 @@
 {{def title}}登録済みファイル一覧{{enddef}}
 {{def extra_head}}
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-<script src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-modal.js"></script>
-<script src="http://documentcloud.github.com/underscore/underscore-min.js"></script>
+<script src="/static/js/bootstrap-modal-1.4.0.js"></script>
+<script src="/static/js/underscore-1.2.4.min.js"></script>
 <script src="/static/js/list_file.js"></script>
 <script>
-    var csrf_token = "";
+    var csrf_token = "{{csrf_token}}";
+    var pin_api_url = "{{route_path('pin')}}";
     var data = JSON.parse('{{json_data|html}}');
 </script>
 {{enddef}}
@@ -58,7 +59,8 @@
         </form>
     </div>
     <div class="modal-footer">
-        <button class="btn">設定する</button>
+        <button class="btn apply">設定する</button>
+        <button class="btn cancel">キャンセル</button>
     </div>
 </div>
 {{enddef}}
