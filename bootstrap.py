@@ -12,14 +12,17 @@ def fix_sys_path():
     if bundle not in sys.path:
         sys.path.insert(0, bundle)
 
-fix_sys_path()
 
-# flush existing appengine bundled ancestor webob.
-for module_name in sys.modules.keys():
-    if module_name.startswith('webob.'):
-        del sys.modules[module_name]
-if 'webob' in sys.modules:
-    del sys.modules['webob']
+def update_webob():
+    # flush existing appengine bundled ancestor webob.
+    for module_name in sys.modules.keys():
+        if module_name.startswith('webob.'):
+            del sys.modules[module_name]
+    if 'webob' in sys.modules:
+        del sys.modules['webob']
+
+fix_sys_path()
+update_webob()
 
 
 def main():

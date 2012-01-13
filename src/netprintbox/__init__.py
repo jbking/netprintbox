@@ -16,5 +16,6 @@ def includeme(config):
     config.add_route('top', '/')
     config.add_route('list_file', '/list')
     config.add_route('pin', '/pin')
+    config.add_route('do_sync_for_user', '/sync')
 
     config.scan('netprintbox.views')

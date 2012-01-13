@@ -49,6 +49,24 @@ def pin(request):
     return response
 
 
+@view_config(route_name='do_sync_for_user', request_method='POST')
+def do_sync_for_user(request):
+    data = json.loads(request.body)
+    token = data['token']
+    if token != request.session.get_csrf_token():
+        raise exc.HTTPForbidden("CSRF token is unmatch.")
+
+    key = request.session['netprintbox.dropbox_user.key']
+    taskqueue.add(url=request.route_path('sync_for_user'),
+                  params={'key': key},
+                  countdown=random.randint(0, SLEEP_WAIT))
+
+    response = request.response
+    response.headers['Content-Type'] = 'application/json'
+    response.body = json.dumps({'message': 'ok'})
+    return response
+
+
 @view_config(route_name='list_file', request_method='GET')
 def list_file(request):
     from netprintbox.data import DropboxUser
