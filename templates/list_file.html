@@ -1,0 +1,81 @@
+{{inherit "page.html"}}
+{{def title}}登録済みファイル一覧{{enddef}}
+{{def extra_head}}
+<script src="/static/js/jquery-1.7.1.min.js"></script>
+<script src="/static/js/bootstrap-modal-1.4.0.js"></script>
+<script src="/static/js/underscore-1.2.4.min.js"></script>
+<script src="/static/js/list_file.js"></script>
+<link rel="stylesheet" href="/static/css/list_file.css">
+<script>
+    var csrf_token = "{{csrf_token}}";
+    var pin_api_url = "{{route_path('pin')}}";
+    var sync_api_url = "{{route_path('do_sync_for_user')}}";
+    var data = JSON.parse('{{json_data|html}}');
+</script>
+{{enddef}}
+{{def content}}
+{{if user is not None}}
+<div class="topbar">
+    <div class="topbar-inner">
+        <div class="container">
+            <a class="brand" href="{{route_path('top')}}">ネットプリントボックス</a>
+            <ul class="nav">
+                <li><a href="{{route_path('list_file')}}">ファイル一覧</a></li>
+                <li><a href="{{route_path('logout')}}">ログアウト</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{{endif}}
+<div class="container">
+    <div class="row">
+        <div id="list-file" class="span12">
+            <table class="zebra-striped">
+                <thead>
+                    <tr>
+                        <th>ファイル</th>
+                        <th>予約番号</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>file_info.path</td>
+                        <td>file_info.netprint_id</td>
+                        <td><a class="btn launch-modal" data-netprint-file-id="foo">詳細</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="span4">
+            <p>もしDropboxにファイルを置いたのに、一覧にないときは、このボタンを押して下さい。</p>
+            <a class="btn info sync_dropbox" href="#">同期する</a>
+        </div>
+    </div>
+</div>
+<div id="modal-form" class="modal hide fade in">
+    <div class="modal-header">
+        <a class="close" href="#">x</a>
+        <h3><span class="file-name"></span>の設定</h3>
+    </div>
+    <div class="modal-body">
+        <dl>
+            <dt>ファイル</dt>
+            <dd class="file-name"></dd>
+            <dt>予約番号<dt>
+            <dd class="file-netprint_id"></dd>
+        </dl>
+        <form class="form-stacked">
+            <ul class="inputs-list">
+                <li><label><input type="radio" value="off" name="auto_reentry"/><p>自動で再登録しない</p></label></li>
+                <li><label><input type="radio" value="on" name="auto_reentry"/><p>自動で再登録する</p></label></li>
+            </ul>
+        </label>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button class="btn apply">設定する</button>
+        <button class="btn cancel">キャンセル</button>
+    </div>
+</div>
+{{enddef}}

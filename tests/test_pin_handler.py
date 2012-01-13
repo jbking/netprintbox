@@ -16,24 +16,32 @@ class PinHandlerTest(TestBase):
         from netprintbox.data import DropboxFileInfo
         from netprintbox.views import pin as pin_view
 
-        report_token = 'a_token'
-        user = create_user(report_token=report_token)
+        token = 'a_token'
+        user = create_user()
         file_info = create_file_info(user)
 
         def post(key, pin, expected):
             data = {'file_key': key, 'pin': pin,
-                    'report_token': report_token}
+                    'token': token}
+
+            class session(object):
+                def get_csrf_token(self):
+                    return token
+
+                def __getitem__(self, key):
+                    if key == 'netprintbox.dropbox_user.key':
+                        return str(user.key())
+                    else:
+                        raise KeyError
+
             request = testing.DummyRequest(
                     headers={'Content-Type': 'application/json'},
                     body=json.dumps(data))
+            request.session = session()
             response = pin_view(request)
             self.assertEqual(response.status_int, 200)
-            self.assertEqual(response.headers['Access-Control-Allow-Origin'],
-                             '*')
-            self.assertEqual(response.headers['Content-Type'],
-                             'application/json')
             result = json.loads(response.body)
-            self.assertEqual(result['pin'], pin)
+            self.assertEqual(result['pin'], expected)
 
             modified_file_info = DropboxFileInfo.get(key)
             self.assertEqual(modified_file_info.pin, expected)

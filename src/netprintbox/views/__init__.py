@@ -1,3 +1,22 @@
+"""
+    Netprintbox
+    Copyright (C) 2012  MURAOKA Yusuke <yusuke@jbking.org>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+
 import json
 
 from webob import exc
@@ -16,15 +35,17 @@ def pin(request):
     from netprintbox.data import DropboxUser, DropboxFileInfo
 
     data = json.loads(request.body)
-    report_token = data['report_token']
-    q = DropboxUser.all().filter('report_token = ', report_token)
-    if q.count() == 1:
-        user = q.get()
-    else:
-        raise exc.HTTPUnauthorized("The report_token is not found.")
+    token = data['token']
+    if token != request.session.get_csrf_token():
+        raise exc.HTTPForbidden("CSRF token is unmatch.")
+
+    key = request.session['netprintbox.dropbox_user.key']
+    user = DropboxUser.get(key)
+
     file_info = DropboxFileInfo.get(data['file_key'])
     if file_info.parent().uid != user.uid:
         raise exc.HTTPUnauthorized("The file_key is not found.")
+
     if data['pin'] == 'on':
         file_info.pin = True
     elif data['pin'] == 'off':
@@ -33,10 +54,58 @@ def pin(request):
         raise ValueError
     file_info.put()
 
+    data = {
+        'key': str(file_info.key()),
+        'path': file_info.path,
+        'netprint_id': file_info.netprint_id,
+        'netprint_name': file_info.as_netprint_name(),
+        'pin': file_info.pin,
+        }
+
     response = request.response
-    response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Content-Type'] = 'application/json'
-    response.body = json.dumps({'pin': data['pin']})
+    response.body = json.dumps(data)
+    return response
+
+
+@view_config(route_name='do_sync_for_user', request_method='POST')
+def do_sync_for_user(request):
+    data = json.loads(request.body)
+    token = data['token']
+    if token != request.session.get_csrf_token():
+        raise exc.HTTPForbidden("CSRF token is unmatch.")
+
+    key = request.session['netprintbox.dropbox_user.key']
+    taskqueue.add(url=request.route_path('sync_for_user'),
+                  params={'key': key},
+                  countdown=random.randint(0, SLEEP_WAIT))
+
+    response = request.response
+    response.headers['Content-Type'] = 'application/json'
+    response.body = json.dumps({'message': 'ok'})
+    return response
+
+
+@view_config(route_name='list_file', request_method='GET')
+def list_file(request):
+    from netprintbox.data import DropboxUser
+
+    key = request.session['netprintbox.dropbox_user.key']
+    user = DropboxUser.get(key)
+
+    data = [{
+        'key': str(file_info.key()),
+        'path': file_info.path,
+        'netprint_id': file_info.netprint_id,
+        'netprint_name': file_info.as_netprint_name(),
+        'pin': file_info.pin,
+        }
+        for file_info in user.own_files()]
+    template = load_template('list_file.html', request=request)
+    response = request.response
+    response.body = template.substitute(
+            json_data=json.dumps(data),
+            csrf_token=request.session.new_csrf_token())
     return response
 
 

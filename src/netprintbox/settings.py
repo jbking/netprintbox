@@ -21,6 +21,9 @@ PACKAGE_DIR = os.path.dirname(__file__)
 ROOT_DIR = os.path.dirname(os.path.dirname(PACKAGE_DIR))
 TEMPLATE_PATH = os.path.join(ROOT_DIR, 'templates')
 
+SESSION_ENCRYPT_KEY = 'encrypt_key'
+SESSION_VALIDATE_KEY = 'validate_key'
+
 try:
     exec file(os.path.join(PACKAGE_DIR, 'settings_local.py')).read()
     logging.info("settings_local.py loaded")

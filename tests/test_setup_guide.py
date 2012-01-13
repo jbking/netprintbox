@@ -76,24 +76,28 @@ class SetupGuideTest(SetupGuideTestBase):
     def test_it(self):
         from netprintbox.views import setup_guide
 
-        request1 = testing.DummyRequest(params={'key': 'key'})
+        request1 = testing.DummyRequest()
+        request1.session['netprintbox.dropbox_user.key'] = 'key'
         with self.assertRaises(exc.HTTPUnauthorized):
             setup_guide(request1)
 
         user = create_user()
-        request2 = testing.DummyRequest(params={'key': user.access_key})
+        request2 = testing.DummyRequest()
+        request2.session['netprintbox.dropbox_user.key'] = str(user.key())
         response2 = setup_guide(request2)
         self.assertEqual(response2.status_int, 200)
         self.assertRegexpMatches(response2.body, re.compile('Step1'))
 
         # fall back to step1 if login failed.
-        request3 = testing.DummyRequest(params={'key': user.access_key})
+        request3 = testing.DummyRequest()
+        request3.session['netprintbox.dropbox_user.key'] = str(user.key())
         response3 = setup_guide(request3)
         self.assertEqual(response3.status_int, 200)
         self.assertRegexpMatches(response3.body, re.compile('Step1'))
 
         # login succeed.
-        request4 = testing.DummyRequest(params={'key': user.access_key})
+        request4 = testing.DummyRequest()
+        request4.session['netprintbox.dropbox_user.key'] = str(user.key())
         response4 = setup_guide(request4)
         self.assertEqual(response4.status_int, 200)
         self.assertRegexpMatches(response4.body, re.compile('Step2'))
@@ -108,7 +112,8 @@ class SetupGuidePendingTest(SetupGuideTestBase):
         user = create_user()
         with self.assertRaises(BecomePendingUser):
             user.put_pending(notify=False)
-        request = testing.DummyRequest(params={'key': user.access_key})
+        request = testing.DummyRequest()
+        request.session['netprintbox.dropbox_user.key'] = str(user.key())
         try:
             setup_guide(request)
             self.fail("No redirect response found")

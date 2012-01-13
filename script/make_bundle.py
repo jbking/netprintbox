@@ -77,6 +77,8 @@ def main():
 
             # netprintbox
             ('tempita', None),
+            ('beaker', None),
+            ('pyramid_beaker', '.*/tests\.py'),
             ):
         if exclude_pattern:
             exclude = re.compile(exclude_pattern)

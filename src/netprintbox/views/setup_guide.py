@@ -1,3 +1,22 @@
+"""
+    Netprintbox
+    Copyright (C) 2012  MURAOKA Yusuke <yusuke@jbking.org>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+
 from StringIO import StringIO
 
 from google.appengine.api import taskqueue
@@ -13,11 +32,11 @@ def need_reauthorize(request):
     raise exc.HTTPFound(location=url)
 
 
-def step1(request, key, error=False):
+def step1(request, error=False):
     """ no account info """
     template = load_template('step1.html', request=request)
     response = request.response
-    response.body = template.substitute(key=key, error=error)
+    response.body = template.substitute(error=error)
     return response
 
 
@@ -36,12 +55,12 @@ def setup_guide(request):
     from netprintbox.exceptions import (
             DropboxNotFound, InvalidNetprintAccountInfo)
 
-    key = request.GET['key']
-    q = DropboxUser.all().filter('access_key = ', key)
-    if q.count() != 1:
-        raise exc.HTTPUnauthorized
+    key = request.session['netprintbox.dropbox_user.key']
 
-    user = q.get()
+    try:
+        user = DropboxUser.get(key)
+    except:
+        raise exc.HTTPUnauthorized
     service = NetprintboxService(user)
 
     if user.is_pending:
@@ -58,16 +77,15 @@ def setup_guide(request):
         "[netprint]\n"
         "username=\n"
         "password="))
-        return step1(request, key)
+        return step1(request)
 
     try:
         (username, password) = service.load_netprint_account_info()
         netprint_service = NetprintService(username, password)
         netprint_service.client
     except (DropboxNotFound, InvalidNetprintAccountInfo):
-        return step1(request, key, error=True)
+        return step1(request, error=True)
     else:
-        user = q.get()
         taskqueue.add(url=request.route_path('sync_for_user'),
-                      params={'key': user.key()})
+                      params={'key': key})
         return step2(request)
