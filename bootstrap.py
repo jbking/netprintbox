@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 
 here = os.path.abspath(os.path.dirname(__file__))
 bundle = os.path.join(here, 'bundle.zip')
@@ -14,15 +15,31 @@ def fix_sys_path():
 
 
 def update_webob():
-    # flush existing appengine bundled ancestor webob.
-    for module_name in sys.modules.keys():
-        if module_name.startswith('webob.'):
-            del sys.modules[module_name]
-    if 'webob' in sys.modules:
-        del sys.modules['webob']
+    import webob
+    VERSION = '1.2b2'
+    if webob.__version__ != VERSION:
+        logging.debug('replacing webob from %s', webob.__version__)
+        # flush existing appengine bundled ancestor webob.
+        for module_name in sys.modules.keys():
+            if module_name.startswith('webob.'):
+                del sys.modules[module_name]
+        if 'webob' in sys.modules:
+            del sys.modules['webob']
+        reload(webob)
+        assert webob.__version__ == VERSION
 
 fix_sys_path()
 update_webob()
+
+
+class EnvironmentRestore(object):
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        fix_sys_path()
+        update_webob()
+        return self.app(environ, start_response)
 
 
 def main():
@@ -54,6 +71,6 @@ def main():
     config.include('netprintbox')
     config.include('pyramid_beaker')
 
-    return config.make_wsgi_app()
+    return EnvironmentRestore(config.make_wsgi_app())
 
 app = main()
