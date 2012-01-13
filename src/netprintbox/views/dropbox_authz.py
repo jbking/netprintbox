@@ -31,6 +31,13 @@ def login(request):
     return exc.HTTPFound(location=authz_url)
 
 
+@view_config(route_name='logout', request_method='GET')
+def logout(request):
+    request.session.invalidate()
+    url = request.route_path('top')
+    return exc.HTTPFound(location=url)
+
+
 @view_config(route_name='login_callback', request_method='GET')
 def login_callback(request):
     from netprintbox.service import DropboxService
