@@ -1,0 +1,11 @@
+BeautifulSoup==3.2.0
+MiniMock==1.2.7
+Tempita==0.5.1
+WebOb==1.2b2
+dropbox==1.2
+httplib2==0.7.2
+nose==1.1.2
+pycrypto==2.4.1
+pyramid==1.3a3
+pyramid-beaker==0.6.1
+python-dateutil==1.5
