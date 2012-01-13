@@ -14,10 +14,17 @@ def categorize_by(key, item_list, reverse=False):
 
 
 def get_namespace(request=None):
+    from netprintbox.data import DropboxUser
     if request is None:
         request = get_current_request()
+    if 'netprintbox.dropbox_user.key' in request.session:
+        key = request.session['netprintbox.dropbox_user.key']
+        user = DropboxUser.get(key)
+    else:
+        user = None
     return {
             'categorize_by': categorize_by,
             'route_path': request.route_path,
             'route_url': request.route_url,
+            'user': user,
             }

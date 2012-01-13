@@ -20,3 +20,30 @@ def authorize_callback(request):
     request.session['netprintbox.dropbox_user.key'] = str(user.key())
     setup_url = request.route_path('setup_guide')
     return exc.HTTPFound(location=setup_url)
+
+
+@view_config(route_name='login', request_method='GET')
+def login(request):
+    from netprintbox.service import DropboxService
+
+    callback_url = request.route_url('login_callback')
+    authz_url = DropboxService.build_authorize_url(callback_url)
+    return exc.HTTPFound(location=authz_url)
+
+
+@view_config(route_name='logout', request_method='GET')
+def logout(request):
+    request.session.invalidate()
+    url = request.route_path('top')
+    return exc.HTTPFound(location=url)
+
+
+@view_config(route_name='login_callback', request_method='GET')
+def login_callback(request):
+    from netprintbox.service import DropboxService
+
+    request_key = request.GET['oauth_token']
+    user = DropboxService.setup_user(request_key)
+    request.session['netprintbox.dropbox_user.key'] = str(user.key())
+    url = request.route_path('top')
+    return exc.HTTPFound(location=url)
