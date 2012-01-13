@@ -14,6 +14,18 @@
 </script>
 {{enddef}}
 {{def content}}
+{{if user is not None}}
+<div class="topbar">
+    <div class="topbar-inner">
+        <div class="container">
+            <a class="brand" href="{{route_path('top')}}">ネットプリントボックス</a>
+            <ul class="nav">
+                <li><a href="{{route_path('list_file')}}">ファイル一覧</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{{endif}}
 <div class="container">
     <div class="row">
         <div id="list-file" class="span12">

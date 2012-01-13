@@ -1,6 +1,18 @@
 {{inherit "page.html"}}
 {{def title}}Dropboxでネットプリント{{enddef}}
 {{def content}}
+{{if user is not None}}
+<div class="topbar">
+    <div class="topbar-inner">
+        <div class="container">
+            <a class="brand" href="{{route_path('top')}}">ネットプリントボックス</a>
+            <ul class="nav">
+                <li><a href="{{route_path('list_file')}}">ファイル一覧</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{{endif}}
 <div>
     <a target="_blank" href="http://github.com/jbking/netprintbox"><img style="position: fixed; z-index: 10001; top: 0; right: 0; border: 0;" src="http://a248.e.akamai.net/assets.github.com/img/30f550e0d38ceb6ef5b81500c64d970b7fb0f028/687474703a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub"></a>
 </div>
@@ -9,6 +21,7 @@
         <div class="row">
             <div class="span16">
                 <p>Dropboxでネットプリントへファイルの登録削除ができるサービスのα版です。</p>
+                <a class="btn info" href="{{route_path('login')}}">ログインする</a>
             </div>
         </div>
     </section>

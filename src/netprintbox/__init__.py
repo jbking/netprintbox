@@ -2,6 +2,8 @@ def includeme(config):
     # dropbox authz
     config.add_route('authorize', '/dropbox/authorize')
     config.add_route('authorize_callback', '/dropbox/callback')
+    config.add_route('login_callback', '/dropbox/login/callback')
+    config.add_route('login', '/dropbox/login')
 
     # task
     TASK_PREFIX = '/task'
