@@ -1,20 +1,14 @@
 # -*- encoding: utf-8 -*-
-from unittest import TestCase
+from utils import TestBase
 from nose.plugins.attrib import attr
 
 from utils import create_user, create_file_info, create_dropbox_item
 
 
-class TransactionTestBase(TestCase):
+class TransactionTestBase(TestBase):
     def setUp(self):
-        from google.appengine.ext.testbed import Testbed
-
-        self.testbed = Testbed()
-        self.testbed.activate()
+        super(TransactionTestBase, self).setUp()
         self.testbed.init_datastore_v3_stub()
-
-    def tearDown(self):
-        self.testbed.deactivate()
 
     def _getOUT(self, context):
         from netprintbox.transaction import SyncTransaction
