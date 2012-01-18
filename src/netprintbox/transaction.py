@@ -273,7 +273,6 @@ class DropboxTransaction(TransactionBase):
         only_exists_on_dropbox = keys_on_dropbox - keys_on_site
         exists_on_both = keys_on_site & keys_on_dropbox
 
-        # In order of possibility of deleting.
         for k in only_exists_on_site:
             self._run_for_item_only_on_site(entries_on_site[k])
 
