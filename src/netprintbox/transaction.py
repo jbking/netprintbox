@@ -20,6 +20,8 @@ import uuid
 
 from dateutil.parser import parse as dt_parse
 
+from google.appengine.ext import db
+
 from netprintbox.data import FileState, DropboxFileInfo
 from netprintbox.utils import normalize_name, is_generated_file
 from netprintbox.dropbox_utils import traverse
@@ -258,21 +260,8 @@ class TransactionBase(object):
 
 
 class DropboxTransaction(TransactionBase):
-    ACCOUNT_CAPACITY = 10 * 1024 * 1024  # 10 MB
-
     def __init__(self, context):
         super(DropboxTransaction, self).__init__(context)
-        self.target = context.user.own_files()
-        self.capacity = self.ACCOUNT_CAPACITY \
-                - sum(obj.size for obj in self.target)
-
-    def _incr_capacity(self, size):
-        self.capacity += size
-
-    def _decr_capacity(self, size):
-        if self.capacity - size < 0:
-            raise OverLimit("Up to account capacity by %dbytes." % size)
-        self.capacity -= size
 
     def run(self):
         entries_on_dropbox = self._collect_entries_on_dropbox()
@@ -299,15 +288,13 @@ class DropboxTransaction(TransactionBase):
         """
         Recognize as gone file.
         """
-        self._incr_capacity(self, item['bytes'])
-        file_info = self.target.filter('path = ', item['path']).get()
+        file_info = self.context.user.own_file(item['path'])
         file_info.delete()
 
     def _run_for_item_only_on_dropbox(self, item):
         """
         Recognize as new file.
         """
-        self._decr_capacity(item['bytes'])
         file_info = DropboxFileInfo(parent=self.context.user,
                                     path=item['path'],
                                     rev=item['rev'],
@@ -319,10 +306,9 @@ class DropboxTransaction(TransactionBase):
     def _run_for_item_on_both(self, item_on_site, item_on_dropbox):
         rev = item_on_dropbox['rev']
         size = item_on_dropbox['bytes']
-        file_info = self.target.filter('path = ', item_on_site['path']).get()
+        file_info = self.context.user.own_file(item_on_site['path'])
         if file_info.rev != rev:
             # Updated file.
-            self._decr_capacity(size - file_info.size)
             file_info.rev = rev
             file_info.size = size
             file_info.state = FileState.NEED_NETPRINT_ID
@@ -331,7 +317,7 @@ class DropboxTransaction(TransactionBase):
 
     def _collect_entries_on_site(self):
         result = {}
-        for file_info in self.target:
+        for file_info in self.context.user.own_files():
             result[file_info.path] = {
                     'path': file_info.path,
                     'rev': file_info.rev,

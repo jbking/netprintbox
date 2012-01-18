@@ -48,6 +48,10 @@ class DropboxUser(db.Model):
     def own_files(self):
         return DropboxFileInfo.all().ancestor(self)
 
+    def own_file(self, path):
+        q = self.own_files()
+        return q.filter('path = ', path).get()
+
     @property
     def is_pending(self):
         return self.pending

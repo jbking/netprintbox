@@ -16,6 +16,49 @@ class TransactionTestBase(TestBase):
         return SyncTransaction(context)
 
 
+class DropboxTest(TransactionTestBase):
+    def _getOUT(self, context):
+        from netprintbox.transaction import DropboxTransaction
+        return DropboxTransaction(context)
+
+    @attr('unit', 'light')
+    def test_it(self):
+        class Context(object):
+            user = None
+            dropbox = None
+
+        class dropbox(object):
+            @staticmethod
+            def list(path):
+                if path == '/':
+                    return {
+                        'is_dir': True,
+                        'contents': [
+                            create_dropbox_item(path='/path1', rev='rev1'),
+                            create_dropbox_item(path='/path2', rev='rev2'),
+                            create_dropbox_item(path='/path3', rev='rev3-new'),
+                        ]}
+                else:
+                    raise AssertionError("Unexpected %s" % path)
+
+        context = Context()
+        context.user = create_user()
+        context.dropbox = dropbox
+
+        create_file_info(context.user, path='/path2', rev='rev2')
+        create_file_info(context.user, path='/path3', rev='rev3')
+        create_file_info(context.user, path='/path4', rev='rev4')
+
+        transaction = self._getOUT(context)
+        transaction.run()
+
+        self.assertIsNotNone(context.user.own_file('/path1'), 'new file')
+        self.assertIsNotNone(context.user.own_file('/path2'), 'no change file')
+        self.assertEqual(context.user.own_file('/path3').rev, 'rev3-new',
+                         'updated file')
+        self.assertIsNone(context.user.own_file('/path4'), 'deleted file')
+
+
 class SyncFeatureTest(TransactionTestBase):
     @attr('unit', 'light')
     def test_new_file(self):
