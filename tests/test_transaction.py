@@ -141,9 +141,8 @@ class NetprintTest(TransactionTestBase):
         f4 = context.user.own_file('/name4')
         self.assertIsNotNone(f4, 'uploaded')
         self.assertEqual(f4.state, FileState.NEED_NETPRINT_ID)
-        self.assertItemsEqual(context.transferred,
-                [{'path': '/name4',
-                  'limit': transaction.ACCOUNT_CAPACITY - 14}])
+        self.assertItemsEqual([item['path'] for item in context.transferred],
+                              ['/name4', '/name6'])
         self.assertEqual(context.user.own_file('/name5').state,
                          FileState.DELETED, 'deleted')
         f6 = context.user.own_file('/name6')

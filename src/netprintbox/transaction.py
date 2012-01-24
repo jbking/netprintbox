@@ -384,8 +384,13 @@ class NetprintTransaction(TransactionBase):
     def _run_for_item_only_on_site(self, item):
         file_info = self.context.user.own_file(item['uid'])
         if file_info.state == FileState.NEED_NETPRINT_ID or file_info.pin:
-            self.context.transfer_from_dropbox(item['path'])
-            self._decr_capacity(item['size'])
+            self.context.transfer_from_dropbox(
+                    item['path'], limit=self.available_space)
+            if file_info.pin:
+                file_info.state = FileState.NEED_NETPRINT_ID
+                file_info.put()
+            else:
+                self._decr_capacity(item['size'])
         else:
             file_info.state = FileState.DELETED
             file_info.put()
