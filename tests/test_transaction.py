@@ -2,7 +2,8 @@
 from utils import TestBase
 from nose.plugins.attrib import attr
 
-from utils import create_user, create_file_info, create_dropbox_item
+from utils import (create_user,
+        create_file_info, create_dropbox_item, create_netprint_item)
 
 
 class TransactionTestBase(TestBase):
@@ -57,6 +58,61 @@ class DropboxTest(TransactionTestBase):
         self.assertEqual(context.user.own_file('/path3').rev, 'rev3-new',
                          'updated file')
         self.assertIsNone(context.user.own_file('/path4'), 'deleted file')
+
+
+class NetprintTest(TransactionTestBase):
+    def _getOUT(self, context):
+        from netprintbox.transaction import NetprintTransaction
+        return NetprintTransaction(context)
+
+    @attr('unit', 'light')
+    def test_it(self):
+        from netprintbox.data import FileState
+
+        class Context(object):
+            user = None
+            netprint = None
+
+        class netprint(object):
+            @staticmethod
+            def list():
+                return [
+                        create_netprint_item(id='id1', name='name1'),
+                        create_netprint_item(id='id2', name='name2'),
+                        create_netprint_item(id='id3', name='name3'),
+                    ]
+
+        context = Context()
+        context.user = create_user()
+        context.netprint = netprint
+
+        create_file_info(context.user, path='/name2',
+                         state=FileState.NEED_NETPRINT_ID)
+        create_file_info(context.user, netprint_id='id3', path='/name3',
+                         state=FileState.LATEST)
+        create_file_info(context.user, path='/name4',
+                         state=FileState.NEED_NETPRINT_ID)
+        create_file_info(context.user, path='/name5',
+                         state=FileState.LATEST)
+
+        transaction = self._getOUT(context)
+        transaction.run()
+
+        self.assertIsNone(context.user.own_file('/name1'),
+                          'netprint only file')
+        f2 = context.user.own_file('/name2')
+        self.assertIsNotNone(f2, 'id assigned file')
+        self.assertEqual(f2.state, FileState.LATEST)
+        self.assertEqual(f2.netprint_id, 'id2')
+        f3 = context.user.own_file('/name3')
+        self.assertIsNotNone(f3, 'no changed')
+        self.assertEqual(f3.state, FileState.LATEST)
+        self.assertEqual(f3.netprint_id, 'id3')
+        f4 = context.user.own_file('/name4')
+        self.assertIsNotNone(f4, 'updated')
+        self.assertEqual(f4.state, FileState.LATEST)
+        self.assertEqual(f4.netprint_id, 'id4')
+        self.assertIsNone(context.user.own_file('/name5'), 'deleted file')
 
 
 class SyncFeatureTest(TransactionTestBase):
