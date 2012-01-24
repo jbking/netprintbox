@@ -288,10 +288,9 @@ class DropboxTransaction(TransactionBase):
         Recognize as gone file.
         """
         file_info = self.context.user.own_file(item['uid'])
-        if file_info.state == FileState.DELETED:
-            # delete from netprint
-            self.context.dropbox.delete(item['path'])
-        file_info.delete()
+        if file_info.state != FileState.DELETED:
+            file_info.state = FileState.DELETED
+            file_info.put()
 
     def _run_for_item_only_on_dropbox(self, item):
         """

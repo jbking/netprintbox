@@ -25,35 +25,27 @@ class DropboxTest(DropboxTestBase):
         from netprintbox.data import FileState
 
         class context(object):
-            user = None
+            user = create_user()
             dropbox = None
 
             @staticmethod
             def is_supporting_file_type(path):
                 return path != '/'
 
-        class Dropbox(object):
-            def __init__(self):
-                self.deleted = []
-
-            def list(self, path):
-                if path == '/':
-                    return {
-                        'path': '/',
-                        'is_dir': True,
-                        'contents': [
-                            create_dropbox_item(path='/path1', rev='rev1'),
-                            create_dropbox_item(path='/path2', rev='rev2'),
-                            create_dropbox_item(path='/path3', rev='rev3-new'),
-                        ]}
-                else:
-                    raise AssertionError("Unexpected %s" % path)
-
-            def delete(self, path):
-                self.deleted.append(path)
-
-        context.user = create_user()
-        context.dropbox = Dropbox()
+            class dropbox(object):
+                @staticmethod
+                def list(path):
+                    if path == '/':
+                        return {
+                            'path': '/',
+                            'is_dir': True,
+                            'contents': [
+                                create_dropbox_item(path='/path1', rev='rev1'),
+                                create_dropbox_item(path='/path2', rev='rev2'),
+                                create_dropbox_item(path='/path3', rev='rev3-new'),
+                            ]}
+                    else:
+                        raise AssertionError("Unexpected %s" % path)
 
         create_file_info(context.user, path='/path2', rev='rev2')
         create_file_info(context.user, path='/path3', rev='rev3',
@@ -70,12 +62,10 @@ class DropboxTest(DropboxTestBase):
         f3 = context.user.own_file('/path3')
         self.assertEqual(f3.rev, 'rev3-new', 'updated file')
         self.assertEqual(f3.state, FileState.NEED_NETPRINT_ID)
-        self.assertIsNone(context.user.own_file('/path4'),
-                          'deleted file on dropbox')
-        self.assertIsNone(context.user.own_file('/path5'),
-                          'deleted file on site')
-        self.assertItemsEqual(context.dropbox.deleted, ['/path5'],
-                          'deleted file on site')
+        self.assertEqual(context.user.own_file('/path4').state,
+                         FileState.DELETED, 'deleted file on dropbox')
+        self.assertEqual(context.user.own_file('/path5').state,
+                         FileState.DELETED, 'stay deleted file on site')
 
 
 class IgnoreFilesTest(DropboxTestBase):
