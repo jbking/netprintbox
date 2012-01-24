@@ -151,6 +151,10 @@ class NetprintboxService(object):
         delete_transaction = DeleteTransaction(self)
         delete_transaction.run()
 
+    def dropbox_sync(self):
+        dropbox_transaction = DropboxTransaction(self)
+        dropbox_transaction.run()
+
     def ensure_paper_size_directories(self):
         root_dirs_path = [item['path']
                           for item in self.dropbox.list('/')['contents']

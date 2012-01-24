@@ -86,17 +86,18 @@ update_file_record = (tbody, file_info) ->
     tr.dataset.fileInfo = JSON.stringify file_info
 
 
-sync_dropbox = ->
-    request = JSON.stringify
-        token: window.csrf_token
+get_sync_func = (target_url) ->
+    ->
+        request = JSON.stringify
+            token: window.csrf_token
 
-    callback = (data) ->
-        console.debug data
+        callback = (data) ->
+            console.debug data
 
-    $.post window.sync_api_url
-        , request
-        , callback
-        , 'json'
+        $.post target_url
+            , request
+            , callback
+            , 'json'
 
 
 $ ->
@@ -120,4 +121,7 @@ $ ->
 
             $(@).click modal_launcher.launch
 
-    $('.sync_dropbox').click sync_dropbox
+    sync_for_dropbox = get_sync_func window.dropbox_sync_api_url
+    sync_for_user = get_sync_func window.sync_api_url
+    $('.sync_for_dropbox').click sync_for_dropbox
+    $('.sync_for_user').click sync_for_user
