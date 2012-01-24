@@ -12,19 +12,24 @@ class TransactionTestBase(TestBase):
         self.testbed.init_datastore_v3_stub()
 
 
-class DropboxTest(TransactionTestBase):
+class DropboxTestBase(TransactionTestBase):
     def _getOUT(self, context):
         from netprintbox.transaction import DropboxTransaction
         return DropboxTransaction(context)
 
+
+class DropboxTest(DropboxTestBase):
     @attr('unit', 'light')
     def test_it(self):
         from netprintbox.data import FileState
-        from netprintbox.settings import ACCOUNT_INFO_PATH, REPORT_PATH
 
-        class Context(object):
+        class context(object):
             user = None
             dropbox = None
+
+            @staticmethod
+            def is_supporting_file_type(path):
+                return path != '/'
 
         class Dropbox(object):
             def __init__(self):
@@ -33,10 +38,9 @@ class DropboxTest(TransactionTestBase):
             def list(self, path):
                 if path == '/':
                     return {
+                        'path': '/',
                         'is_dir': True,
                         'contents': [
-                            create_dropbox_item(path=ACCOUNT_INFO_PATH),
-                            create_dropbox_item(path=REPORT_PATH),
                             create_dropbox_item(path='/path1', rev='rev1'),
                             create_dropbox_item(path='/path2', rev='rev2'),
                             create_dropbox_item(path='/path3', rev='rev3-new'),
@@ -47,7 +51,6 @@ class DropboxTest(TransactionTestBase):
             def delete(self, path):
                 self.deleted.append(path)
 
-        context = Context()
         context.user = create_user()
         context.dropbox = Dropbox()
 
@@ -61,10 +64,6 @@ class DropboxTest(TransactionTestBase):
         transaction = self._getOUT(context)
         transaction.run()
 
-        self.assertIsNone(context.user.own_file(ACCOUNT_INFO_PATH),
-                          'generated file not be on')
-        self.assertIsNone(context.user.own_file(REPORT_PATH),
-                          'generated file not be on')
         self.assertIsNotNone(context.user.own_file('/path1'), 'new file')
         self.assertIsNotNone(context.user.own_file('/path2'), 'no change file')
         f3 = context.user.own_file('/path3')
@@ -76,6 +75,46 @@ class DropboxTest(TransactionTestBase):
                           'deleted file on site')
         self.assertItemsEqual(context.dropbox.deleted, ['/path5'],
                           'deleted file on site')
+
+
+class IgnoreFilesTest(DropboxTestBase):
+    @attr('unit', 'light')
+    def test_it(self):
+        from netprintbox.settings import ACCOUNT_INFO_PATH, REPORT_PATH
+
+        class context(object):
+            user = create_user()
+
+            class dropbox(object):
+                @staticmethod
+                def list(path):
+                    if path == '/':
+                        return {
+                            'path': '/',
+                            'is_dir': True,
+                            'contents': [
+                                create_dropbox_item(path=ACCOUNT_INFO_PATH),
+                                create_dropbox_item(path=REPORT_PATH),
+                                create_dropbox_item(path='/unsupported.dat'),
+                            ]}
+                    else:
+                        raise AssertionError("Unexpected %s" % path)
+
+            @staticmethod
+            def is_supporting_file_type(path):
+                return path not in (ACCOUNT_INFO_PATH,
+                                    REPORT_PATH,
+                                    '/unsupported.dat',)
+
+        transaction = self._getOUT(context)
+        transaction.run()
+
+        self.assertIsNone(context.user.own_file(ACCOUNT_INFO_PATH),
+                          'generated file not be on')
+        self.assertIsNone(context.user.own_file(REPORT_PATH),
+                          'generated file not be on')
+        self.assertIsNone(context.user.own_file('/unsupported.dat'),
+                          'unsupported file not be on')
 
 
 class NetprintTestBase(TransactionTestBase):

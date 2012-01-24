@@ -333,10 +333,13 @@ class DropboxTransaction(TransactionBase):
         result = {}
 
         def __collect_entries(data):
-            if not (data['is_dir']
-                    or data.get('is_deleted', False)
-                    or is_generated_file(data['path'])):
-                result[data['path']] = data
+            path = data['path']
+            if not data['is_dir']:
+                # file only
+                if not (data.get('is_deleted', False) or
+                        is_generated_file(path) or
+                        not self.context.is_supporting_file_type(path)):
+                    result[path] = data
 
         traverse(__collect_entries, data)
         return result

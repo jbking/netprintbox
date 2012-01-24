@@ -276,6 +276,10 @@ class NetprintboxService(object):
                           self.user.email,
                           self.user.uid)
 
+    def is_supporting_file_type(self, file_name):
+        # do as interface.
+        return self.netprint.is_supporting_file_type(file_name)
+
 
 def handle_error_response(func):
     def _func(self, *args, **kwargs):
