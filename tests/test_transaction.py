@@ -15,6 +15,7 @@ class TransactionTestBase(TestBase):
 class DropboxTestBase(TransactionTestBase):
     def _getOUT(self, context):
         from netprintbox.transaction import DropboxTransaction
+
         return DropboxTransaction(context)
 
 
@@ -120,6 +121,7 @@ class IgnoreFilesTest(DropboxTestBase):
 class NetprintTestBase(TransactionTestBase):
     def _getOUT(self, context):
         from netprintbox.transaction import NetprintTransaction
+
         return NetprintTransaction(context)
 
 
