@@ -11,11 +11,6 @@ class TransactionTestBase(TestBase):
         super(TransactionTestBase, self).setUp()
         self.testbed.init_datastore_v3_stub()
 
-    def _getOUT(self, context):
-        from netprintbox.transaction import SyncTransaction
-
-        return SyncTransaction(context)
-
 
 class DropboxTest(TransactionTestBase):
     def _getOUT(self, context):
@@ -83,11 +78,13 @@ class DropboxTest(TransactionTestBase):
                           'deleted file on site')
 
 
-class NetprintTest(TransactionTestBase):
+class NetprintTestBase(TransactionTestBase):
     def _getOUT(self, context):
         from netprintbox.transaction import NetprintTransaction
         return NetprintTransaction(context)
 
+
+class NetprintTest(NetprintTestBase):
     @attr('unit', 'light')
     def test_it(self):
         from netprintbox.data import FileState
@@ -150,17 +147,32 @@ class NetprintTest(TransactionTestBase):
         self.assertEqual(f6.state, FileState.NEED_NETPRINT_ID)
 
 
-class ObtainingLimitTest(TransactionTestBase):
+class ObtainingLimitTest(NetprintTestBase):
     @attr('unit', 'light')
-    def test_over_limit_for_account(self):
+    def test_it(self):
+        from netprintbox.data import FileState
         from netprintbox.exceptions import OverLimit
 
         class context(object):
             user = create_user()
 
-        for _ in range(5):
-            create_file_info(context.user, size=(2 * 1024 * 1024))
+            class netprint(object):
+                @staticmethod
+                def list():
+                    return [
+                            create_netprint_item(name='path1'),
+                            create_netprint_item(name='path2'),
+                            create_netprint_item(name='path3'),
+                            create_netprint_item(name='path4'),
+                            create_netprint_item(name='path5'),
+                            ]
+
+        for i in range(5):
+            create_file_info(context.user, path='/path%d' % (i + 1),
+                             state=FileState.LATEST, size=(2 * 1024 * 1024))
+        create_file_info(context.user, path='/path6',
+                         state=FileState.NEED_NETPRINT_ID, size=1)
+
         transaction = self._getOUT(context)
 
-        self.assertRaises(OverLimit, transaction._dropbox_only,
-                          create_dropbox_item(bytes=1))
+        self.assertRaises(OverLimit, transaction.run)

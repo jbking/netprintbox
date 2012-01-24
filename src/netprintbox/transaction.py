@@ -354,12 +354,12 @@ class NetprintTransaction(TransactionBase):
         self.available_space = self.ACCOUNT_CAPACITY - using_space
 
     def _decr_capacity(self, size):
-        self.available_space += size
-
-    def _incr_capacity(self, size):
         if self.available_space - size < 0:
             raise OverLimit("Up to account capacity by %dbytes." % size)
         self.available_space -= size
+
+    def _incr_capacity(self, size):
+        self.available_space += size
 
     def run(self):
         entries_on_netprint = self._collect_entries_on_netprint()
@@ -383,14 +383,16 @@ class NetprintTransaction(TransactionBase):
 
     def _run_for_item_only_on_site(self, item):
         file_info = self.context.user.own_file(item['uid'])
-        if file_info.state == FileState.NEED_NETPRINT_ID or file_info.pin:
+        if file_info.state == FileState.NEED_NETPRINT_ID:
+            size = item['size']
+            self._decr_capacity(size)
+            self.context.transfer_from_dropbox(
+                    item['path'], limit=self.available_space + size)
+        elif file_info.pin:
             self.context.transfer_from_dropbox(
                     item['path'], limit=self.available_space)
-            if file_info.pin:
-                file_info.state = FileState.NEED_NETPRINT_ID
-                file_info.put()
-            else:
-                self._decr_capacity(item['size'])
+            file_info.state = FileState.NEED_NETPRINT_ID
+            file_info.put()
         else:
             file_info.state = FileState.DELETED
             file_info.put()
