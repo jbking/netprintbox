@@ -62,6 +62,21 @@ def handling_task_exception(user):
         logging.exception('unexpected exception: %s', user.email)
 
 
+@view_config(route_name='dropbox_sync_for_user')
+def dropbox_sync_for_user(request):
+    from netprintbox.service import NetprintboxService
+    from netprintbox.data import DropboxUser
+
+    user_key = request.POST['key']
+    user = DropboxUser.get(user_key)
+    logging.debug("Checking for: %s", user.email)
+
+    with handling_task_exception(user):
+        service = NetprintboxService(user)
+        service.dropbox_sync()
+    return request.response
+
+
 @view_config(route_name='sync_for_user')
 def sync_for_user(request):
     from netprintbox.service import NetprintboxService

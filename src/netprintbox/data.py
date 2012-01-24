@@ -48,6 +48,20 @@ class DropboxUser(db.Model):
     def own_files(self):
         return DropboxFileInfo.all().ancestor(self)
 
+    def own_file(self, path_or_uid):
+        from google.appengine.api.datastore_errors import BadKeyError
+
+        try:
+            # first suppose the variable as key
+            file_info = DropboxFileInfo.get(path_or_uid)
+            if file_info:
+                return file_info
+        except BadKeyError:
+            # then suppose the variable as path
+            pass
+        q = self.own_files()
+        return q.filter('path = ', path_or_uid).get()
+
     @property
     def is_pending(self):
         return self.pending
@@ -71,7 +85,7 @@ class DropboxUser(db.Model):
 
 
 class FileState(object):
-    NEED_NETPRINT_ID, LATEST = range(2)
+    NEED_NETPRINT_ID, LATEST, DELETED = range(3)
 
 
 class DropboxFileInfo(db.Model):
@@ -87,6 +101,10 @@ class DropboxFileInfo(db.Model):
         return '<%s %r %s>' % (self.__class__.__name__,
                                self.path,
                                self.netprint_id,)
+
+    @property
+    def uid(self):
+        return self.key()
 
     def as_netprint_name(self, with_extension=False):
         return normalize_name(self.path, ext=with_extension)

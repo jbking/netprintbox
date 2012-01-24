@@ -10,6 +10,7 @@
     var csrf_token = "{{csrf_token}}";
     var pin_api_url = "{{route_path('pin')}}";
     var sync_api_url = "{{route_path('do_sync_for_user')}}";
+    var dropbox_sync_api_url = "{{route_path('do_dropbox_sync_for_user')}}";
     var data = JSON.parse('{{json_data|html}}');
 </script>
 {{enddef}}
@@ -49,7 +50,9 @@
         </div>
         <div class="span4">
             <p>もしDropboxにファイルを置いたのに、一覧にないときは、このボタンを押して下さい。</p>
-            <a class="btn info sync_dropbox" href="#">同期する</a>
+            <p><a class="btn info sync_for_dropbox" href="#">Dropboxと同期する</a></p>
+            <p>ネットプリントとも同期をしたいときは、このボタンを押して下さい。</p>
+            <p><a class="btn info sync_for_user" href="#">完全に同期する</a></p>
         </div>
     </div>
 </div>

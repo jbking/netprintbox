@@ -28,6 +28,7 @@ def includeme(config):
     TASK_PREFIX = '/task'
     config.add_route('sync_all', TASK_PREFIX + '/sync')
     config.add_route('sync_for_user', TASK_PREFIX + '/check')
+    config.add_route('dropbox_sync_for_user', TASK_PREFIX + '/dropbox_check')
     config.add_route('make_report_for_user', TASK_PREFIX + '/make_report')
 
     # setup
@@ -38,6 +39,7 @@ def includeme(config):
     config.add_route('list_file', '/list')
     config.add_route('pin', '/pin')
     config.add_route('do_sync_for_user', '/sync')
+    config.add_route('do_dropbox_sync_for_user', '/dropbox_sync')
     config.add_route('logout', '/login')
 
     config.scan('netprintbox.views')
