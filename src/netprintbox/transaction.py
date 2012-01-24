@@ -340,3 +340,84 @@ class DropboxTransaction(TransactionBase):
 
         traverse(__collect_entries, data)
         return result
+
+
+class NetprintTransaction(TransactionBase):
+
+    ACCOUNT_CAPACITY = 10 * 1024 * 1024
+
+    def __init__(self, context):
+        super(NetprintTransaction, self).__init__(context)
+        using_space = sum(file_info.size
+                for file_info in context.user.own_files()
+                if file_info.state == FileState.LATEST)
+        self.available_space = self.ACCOUNT_CAPACITY - using_space
+
+    def _decr_capacity(self, size):
+        self.available_space += size
+
+    def _incr_capacity(self, size):
+        if self.available_space - size < 0:
+            raise OverLimit("Up to account capacity by %dbytes." % size)
+        self.available_space -= size
+
+    def run(self):
+        entries_on_netprint = self._collect_entries_on_netprint()
+        entries_on_site = self._collect_entries_on_site()
+
+        keys_on_site = set(entries_on_site)
+        keys_on_netprint = set(entries_on_netprint)
+        only_exists_on_site = keys_on_site - keys_on_netprint
+        only_exists_on_netprint = keys_on_netprint - keys_on_site
+        exists_on_both = keys_on_site & keys_on_netprint
+
+        for k in only_exists_on_site:
+            self._run_for_item_only_on_site(entries_on_site[k])
+
+        for k in exists_on_both:
+            self._run_for_item_on_both(entries_on_site[k],
+                                       entries_on_netprint[k])
+
+        for k in only_exists_on_netprint:
+            self._run_for_item_only_on_netprint(entries_on_netprint[k])
+
+    def _run_for_item_only_on_site(self, item):
+        file_info = self.context.user.own_file(item['uid'])
+        if file_info.state == FileState.NEED_NETPRINT_ID or file_info.pin:
+            self.context.transfer_from_dropbox(item['path'])
+            self._decr_capacity(item['size'])
+        else:
+            file_info.state = FileState.DELETED
+            file_info.put()
+            self._incr_capacity(item['size'])
+
+    def _run_for_item_only_on_netprint(self, item):
+        pass
+
+    def _run_for_item_on_both(self, item_on_site, item_on_netprint):
+        file_info = self.context.user.own_file(item_on_site['uid'])
+        if file_info.state == FileState.NEED_NETPRINT_ID:
+            file_info.netprint_id = item_on_netprint['id']
+            file_info.state = FileState.LATEST
+            file_info.put()
+
+    def _collect_entries_on_site(self):
+        result = {}
+        for file_info in self.context.user.own_files():
+            netprint_name = file_info.as_netprint_name()
+            result[netprint_name] = {
+                    'uid': file_info.uid,
+                    'path': file_info.path,
+                    'size': file_info.size,
+                }
+        return result
+
+    def _collect_entries_on_netprint(self):
+        result = {}
+        for item in self.context.netprint.list():
+            dict_item = item._asdict()
+            if item.error:
+                result[dict_item['name'].split('.')[0]] = dict_item
+            else:
+                result[dict_item['name']] = dict_item
+        return result
