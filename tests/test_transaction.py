@@ -12,6 +12,50 @@ class TransactionTestBase(TestBase):
         self.testbed.init_datastore_v3_stub()
 
 
+class DeleteTestBase(TransactionTestBase):
+    def _getOUT(self, context):
+        from netprintbox.transaction import DeleteTransaction
+
+        return DeleteTransaction(context)
+
+
+class DeleteTest(DeleteTestBase):
+    @attr('unit', 'light')
+    def test_it(self):
+        from netprintbox.data import FileState
+
+        class Context(object):
+            user = create_user()
+
+            def __init__(self):
+                self.netprint_ids = []
+                self.dropbox_paths = []
+
+            def delete_from_netprint(self, netprint_id):
+                self.netprint_ids.append(netprint_id)
+
+            def delete_from_dropbox(self, path):
+                self.dropbox_paths.append(path)
+
+        context = Context()
+        create_file_info(context.user, path='/path1', netprint_id='id1',
+                         state=FileState.DELETED)
+        create_file_info(context.user, path='/path2', netprint_id='id2',
+                         state=FileState.LATEST)
+
+        transaction = self._getOUT(context)
+        transaction.run()
+
+        self.assertIsNone(context.user.own_file('/path1'),
+                          "must be deleted.")
+        self.assertItemsEqual(context.netprint_ids, ['id1'],
+                              "must be deleted.")
+        self.assertItemsEqual(context.dropbox_paths, ['/path1'],
+                              "must be deleted.")
+        self.assertIsNotNone(context.user.own_file('/path2'),
+                             "must not be deleted.")
+
+
 class DropboxTestBase(TransactionTestBase):
     def _getOUT(self, context):
         from netprintbox.transaction import DropboxTransaction
