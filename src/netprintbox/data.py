@@ -85,7 +85,7 @@ class DropboxUser(db.Model):
 
 
 class FileState(object):
-    NEED_NETPRINT_ID, LATEST = range(2)
+    NEED_NETPRINT_ID, LATEST, DELETED = range(3)
 
 
 class DropboxFileInfo(db.Model):

@@ -24,13 +24,17 @@ class DropboxTest(TransactionTestBase):
 
     @attr('unit', 'light')
     def test_it(self):
+        from netprintbox.data import FileState
+
         class Context(object):
             user = None
             dropbox = None
 
-        class dropbox(object):
-            @staticmethod
-            def list(path):
+        class Dropbox(object):
+            def __init__(self):
+                self.deleted = []
+
+            def list(self, path):
                 if path == '/':
                     return {
                         'is_dir': True,
@@ -42,13 +46,18 @@ class DropboxTest(TransactionTestBase):
                 else:
                     raise AssertionError("Unexpected %s" % path)
 
+            def delete(self, path):
+                self.deleted.append(path)
+
         context = Context()
         context.user = create_user()
-        context.dropbox = dropbox
+        context.dropbox = Dropbox()
 
         create_file_info(context.user, path='/path2', rev='rev2')
         create_file_info(context.user, path='/path3', rev='rev3')
         create_file_info(context.user, path='/path4', rev='rev4')
+        create_file_info(context.user, path='/path5', rev='rev5',
+                         state=FileState.DELETED)
 
         transaction = self._getOUT(context)
         transaction.run()
@@ -57,7 +66,12 @@ class DropboxTest(TransactionTestBase):
         self.assertIsNotNone(context.user.own_file('/path2'), 'no change file')
         self.assertEqual(context.user.own_file('/path3').rev, 'rev3-new',
                          'updated file')
-        self.assertIsNone(context.user.own_file('/path4'), 'deleted file')
+        self.assertIsNone(context.user.own_file('/path4'),
+                          'deleted file on dropbox')
+        self.assertIsNone(context.user.own_file('/path5'),
+                          'deleted file on site')
+        self.assertItemsEqual(context.dropbox.deleted, ['/path5'],
+                          'deleted file on site')
 
 
 class NetprintTest(TransactionTestBase):
