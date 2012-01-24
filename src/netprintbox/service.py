@@ -44,7 +44,8 @@ from netprintbox.exceptions import (
         UnsupportedFile
 )
 from netprintbox.data import OAuthRequestToken, DropboxUser, FileState
-from netprintbox.transaction import SyncTransaction
+from netprintbox.transaction import (
+        NetprintTransaction, DropboxTransaction, DeleteTransaction)
 from dropbox_utils import traverse, ensure_binary_string
 from settings import (
         DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_ACCESS_TYPE,
@@ -143,8 +144,12 @@ class NetprintboxService(object):
 
     def sync(self):
         self.ensure_paper_size_directories()
-        transaction = SyncTransaction(self)
-        transaction.sync()
+        dropbox_transaction = DropboxTransaction(self)
+        dropbox_transaction.run()
+        netprint_transaction = NetprintTransaction(self)
+        netprint_transaction.run()
+        delete_transaction = DeleteTransaction(self)
+        delete_transaction.run()
 
     def ensure_paper_size_directories(self):
         root_dirs_path = [item['path']

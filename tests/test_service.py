@@ -317,9 +317,14 @@ class NetprintboxServiceTest(ServiceTestBase):
                             name=file_info.as_netprint_name(True),
                             error=True)]
 
+            @staticmethod
+            def is_supporting_file_type(file_name):
+                return file_name[-4:] == '.doc'
+
         service.dropbox = dropbox
         service.netprint = netprint
         service.sync()
+        # do not raise any exception at synchronizing phase.
 
     @attr('unit', 'light')
     def test_treat_errors_on_netprint_making_report(self):
