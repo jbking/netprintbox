@@ -54,7 +54,8 @@ class DropboxTest(TransactionTestBase):
         context.dropbox = Dropbox()
 
         create_file_info(context.user, path='/path2', rev='rev2')
-        create_file_info(context.user, path='/path3', rev='rev3')
+        create_file_info(context.user, path='/path3', rev='rev3',
+                         state=FileState.DELETED)
         create_file_info(context.user, path='/path4', rev='rev4')
         create_file_info(context.user, path='/path5', rev='rev5',
                          state=FileState.DELETED)
@@ -64,8 +65,9 @@ class DropboxTest(TransactionTestBase):
 
         self.assertIsNotNone(context.user.own_file('/path1'), 'new file')
         self.assertIsNotNone(context.user.own_file('/path2'), 'no change file')
-        self.assertEqual(context.user.own_file('/path3').rev, 'rev3-new',
-                         'updated file')
+        f3 = context.user.own_file('/path3')
+        self.assertEqual(f3.rev, 'rev3-new', 'updated file')
+        self.assertEqual(f3.state, FileState.NEED_NETPRINT_ID)
         self.assertIsNone(context.user.own_file('/path4'),
                           'deleted file on dropbox')
         self.assertIsNone(context.user.own_file('/path5'),
