@@ -287,7 +287,7 @@ class DropboxTransaction(TransactionBase):
         """
         Recognize as gone file.
         """
-        file_info = self.context.user.own_file(item['path'])
+        file_info = self.context.user.own_file(item['uid'])
         file_info.delete()
 
     def _run_for_item_only_on_dropbox(self, item):
@@ -305,7 +305,7 @@ class DropboxTransaction(TransactionBase):
     def _run_for_item_on_both(self, item_on_site, item_on_dropbox):
         rev = item_on_dropbox['rev']
         size = item_on_dropbox['bytes']
-        file_info = self.context.user.own_file(item_on_site['path'])
+        file_info = self.context.user.own_file(item_on_site['uid'])
         if file_info.rev != rev:
             # Updated file.
             file_info.rev = rev
@@ -318,6 +318,7 @@ class DropboxTransaction(TransactionBase):
         result = {}
         for file_info in self.context.user.own_files():
             result[file_info.path] = {
+                    'uid': file_info.uid,
                     'path': file_info.path,
                     'rev': file_info.rev,
                     'bytes': file_info.size,
